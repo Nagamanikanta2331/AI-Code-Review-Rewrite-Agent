@@ -1,0 +1,359 @@
+"""
+AI Code Review & Rewrite Agent — Backend API
+=============================================
+Production-grade FastAPI server with Google Gemini API integration.
+Model: Gemini 2.5 Flash | Inference: Google AI
+"""
+
+import json
+import os
+import re
+import time
+from pathlib import Path
+from typing import Optional
+
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+
+# ───────────────────────────────────────────────────────────────
+# Configuration
+# ───────────────────────────────────────────────────────────────
+ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
+
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+MODEL_ID: str = "gemini-2.5-flash"
+TEMPERATURE: float = 0.3
+MAX_TOKENS: int = 8192
+TOP_P: float = 0.9
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+if not GEMINI_API_KEY:
+    print("⚠️  GEMINI_API_KEY is missing — set it in backend/.env")
+
+# ───────────────────────────────────────────────────────────────
+# Gemini Client
+# ───────────────────────────────────────────────────────────────
+gemini_client: Optional[genai.Client] = None
+if GEMINI_API_KEY:
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
+# ───────────────────────────────────────────────────────────────
+# FastAPI Application
+# ───────────────────────────────────────────────────────────────
+app = FastAPI(
+    title="AI Code Review & Rewrite Agent",
+    description="Reviews, rewrites and improves code with Google Gemini 2.5 Flash.",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ───────────────────────────────────────────────────────────────
+# Pydantic Models
+# ───────────────────────────────────────────────────────────────
+class HealthResponse(BaseModel):
+    status: str
+    model: str
+    gemini_connected: bool
+
+
+class ReviewRequest(BaseModel):
+    code: str = Field(..., min_length=1)
+    language: str = Field(default="python")
+    instructions: Optional[str] = Field(default=None)
+
+
+class ReviewResponse(BaseModel):
+    result: str
+    model: str
+    tokens_used: Optional[int] = None
+
+
+class RewriteRequest(BaseModel):
+    code: str = Field(..., min_length=1)
+    language: str = Field(default="python")
+
+
+class RewriteResponse(BaseModel):
+    rewritten_code: str
+    improvements: list[str]
+    model: str
+    tokens_used: Optional[int] = None
+
+
+# ───────────────────────────────────────────────────────────────
+# Prompt Engineering
+# ───────────────────────────────────────────────────────────────
+REVIEW_SYSTEM_PROMPT = """You are an elite senior software engineer performing a production-grade code review.
+
+INSTRUCTIONS:
+1. Analyse the code thoroughly for bugs, security vulnerabilities, performance issues, readability problems, and best-practice violations.
+2. Categorise EVERY finding into one of four severity levels: **Critical**, **High**, **Medium**, or **Low**.
+3. For each finding, provide:
+   - The **severity** label (Critical / High / Medium / Low)
+   - The **line number(s)** or code snippet where the issue occurs
+   - A clear **description** of the problem
+   - A concrete **suggestion** or corrected code snippet
+4. At the top, provide a brief **Summary** with total counts per severity.
+5. Use Markdown formatting with headers, bullet points, and fenced code blocks.
+6. Be specific — reference exact variable names, function names, and line numbers.
+
+SEVERITY DEFINITIONS:
+- **Critical**: Security vulnerabilities, data loss risks, crashes, injection attacks
+- **High**: Logic errors, race conditions, unhandled exceptions, major performance issues
+- **Medium**: Code smell, poor naming, missing validation, moderate performance issues
+- **Low**: Style issues, missing documentation, minor readability improvements
+
+OUTPUT FORMAT:
+## Summary
+- Critical: X | High: X | Medium: X | Low: X
+
+## Critical Issues
+...
+
+## High Issues
+...
+
+## Medium Issues
+...
+
+## Low Issues
+...
+
+## Recommendations
+..."""
+
+REWRITE_SYSTEM_PROMPT = """You are an elite senior software engineer. Rewrite the provided code to production-ready quality.
+
+YOU MUST:
+1. Fix ALL bugs, logical errors, and edge-case issues.
+2. Improve readability and code structure.
+3. Add proper docstrings to every class and function.
+4. Add clear inline comments where logic is non-trivial.
+5. Apply industry best practices and idiomatic patterns.
+6. Ensure security (no injection, no hardcoded secrets, proper input validation).
+7. Add example usage at the bottom if applicable.
+
+RESPONSE FORMAT — Return ONLY a valid JSON object with exactly these keys:
+{
+  "rewritten_code": "the complete rewritten source code as a string",
+  "improvements": ["improvement 1", "improvement 2", ...]
+}
+
+RULES:
+- Return ONLY valid JSON. No markdown fences. No extra text before or after.
+- The "rewritten_code" value must be a single string (use \\n for newlines).
+- The "improvements" array must list every change you made as a short sentence."""
+
+
+# ───────────────────────────────────────────────────────────────
+# Helpers
+# ───────────────────────────────────────────────────────────────
+def _ensure_gemini() -> None:
+    """Raise 503 if Gemini client is not initialised."""
+    if gemini_client is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gemini API key is not configured. Set GEMINI_API_KEY in backend/.env",
+        )
+
+
+def _call_llm(system: str, user: str, json_mode: bool = False) -> tuple[str, Optional[int]]:
+    """Call Google Gemini with retry logic and return (content, total_tokens)."""
+    _ensure_gemini()
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            config = types.GenerateContentConfig(
+                system_instruction=system,
+                temperature=TEMPERATURE,
+                max_output_tokens=MAX_TOKENS,
+                top_p=TOP_P,
+            )
+            if json_mode:
+                config = types.GenerateContentConfig(
+                    system_instruction=system,
+                    temperature=TEMPERATURE,
+                    max_output_tokens=MAX_TOKENS,
+                    top_p=TOP_P,
+                    response_mime_type="application/json",
+                )
+
+            response = gemini_client.models.generate_content(
+                model=MODEL_ID,
+                contents=user,
+                config=config,
+            )
+            content = response.text
+            tokens = None
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                tokens = response.usage_metadata.total_token_count
+            return content, tokens
+        except Exception as exc:
+            error_msg = str(exc).lower()
+            if "rate" in error_msg or "quota" in error_msg or "429" in error_msg:
+                if attempt < max_retries - 1:
+                    wait = (attempt + 1) * 5
+                    print(f"[Gemini] Rate limited. Retrying in {wait}s...")
+                    time.sleep(wait)
+                    continue
+                raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="Gemini rate limit exceeded. Wait and retry.")
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f"Gemini API error: {str(exc)}")
+
+    raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Gemini API failed after retries.")
+
+
+def extract_json(raw: str) -> dict:
+    """Robust JSON extraction from LLM output with multi-strategy parsing."""
+    # Strategy 1 — direct parse
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 2 — strip markdown code fences
+    cleaned = re.sub(r"^```(?:json)?\s*\n?", "", raw.strip(), flags=re.MULTILINE)
+    cleaned = re.sub(r"\n?```\s*$", "", cleaned.strip(), flags=re.MULTILINE)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 3 — extract first JSON object
+    match = re.search(r"\{[\s\S]*\}", raw)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # Strategy 4 — manually extract rewritten_code and improvements
+    code_match = re.search(r'"rewritten_code"\s*:\s*"([\s\S]*?)"(?:\s*,\s*"improvements")', raw)
+    imp_match = re.search(r'"improvements"\s*:\s*\[([\s\S]*?)\]', raw)
+    if code_match:
+        code_val = code_match.group(1)
+        improvements = []
+        if imp_match:
+            improvements = re.findall(r'"([^"]*)"', imp_match.group(1))
+        return {"rewritten_code": code_val, "improvements": improvements}
+
+    raise ValueError("Failed to parse JSON from model response")
+
+
+def _serve_html(filename: str) -> FileResponse:
+    """Return an HTML file from the frontend directory or raise 404."""
+    path = FRONTEND_DIR / filename
+    if not path.is_file():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f"{filename} not found at {path}")
+    return FileResponse(path, media_type="text/html")
+
+
+# ───────────────────────────────────────────────────────────────
+# Routes — Health
+# ───────────────────────────────────────────────────────────────
+@app.get("/", response_model=HealthResponse, tags=["Health"])
+async def health_check():
+    """Health-check endpoint."""
+    return HealthResponse(
+        status="API Connected",
+        model=MODEL_ID,
+        gemini_connected=gemini_client is not None,
+    )
+
+
+# ───────────────────────────────────────────────────────────────
+# Routes — Code Review
+# ───────────────────────────────────────────────────────────────
+@app.post("/review", response_model=ReviewResponse, tags=["Code Review"])
+async def review_code(req: ReviewRequest):
+    """Review code with structured severity categories and line-by-line feedback."""
+    focus = f"\n\nAdditional focus areas: {req.instructions}" if req.instructions else ""
+    user_prompt = f"Language: {req.language}\n\n```{req.language}\n{req.code}\n```{focus}"
+
+    content, tokens = _call_llm(REVIEW_SYSTEM_PROMPT, user_prompt)
+
+    return ReviewResponse(result=content, model=MODEL_ID, tokens_used=tokens)
+
+
+# ───────────────────────────────────────────────────────────────
+# Routes — Code Rewrite (structured JSON)
+# ───────────────────────────────────────────────────────────────
+@app.post("/api/rewrite", response_model=RewriteResponse, tags=["Code Rewrite"])
+async def rewrite_code(req: RewriteRequest):
+    """Rewrite code to production quality — returns structured JSON."""
+    user_prompt = f"Language: {req.language}\n\n```{req.language}\n{req.code}\n```"
+
+    content, tokens = _call_llm(REWRITE_SYSTEM_PROMPT, user_prompt, json_mode=True)
+
+    try:
+        parsed = extract_json(content)
+    except ValueError:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Model returned invalid JSON. Please retry.")
+
+    rewritten = parsed.get("rewritten_code", "")
+    improvements = parsed.get("improvements", [])
+
+    if not rewritten:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Model did not return rewritten code.")
+
+    return RewriteResponse(
+        rewritten_code=rewritten,
+        improvements=improvements if isinstance(improvements, list) else [str(improvements)],
+        model=MODEL_ID,
+        tokens_used=tokens,
+    )
+
+
+# ───────────────────────────────────────────────────────────────
+# Routes — Frontend Pages
+# ───────────────────────────────────────────────────────────────
+@app.get("/login", response_class=HTMLResponse, tags=["Frontend"])
+async def serve_login():
+    """Serve login page."""
+    return _serve_html("login.html")
+
+
+@app.get("/app", response_class=HTMLResponse, tags=["Frontend"])
+async def serve_app():
+    """Serve main application page."""
+    return _serve_html("index.html")
+
+
+# Mount static assets from frontend folder
+if FRONTEND_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
+
+# ───────────────────────────────────────────────────────────────
+# Entry Point — python main.py
+# ───────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import uvicorn
+
+    print("=" * 56)
+    print("  AI Code Review & Rewrite Agent")
+    print(f"  Model   : {MODEL_ID} (Google Gemini)")
+    print(f"  Server  : http://localhost:8000")
+    print(f"  Login   : http://localhost:8000/login")
+    print(f"  App     : http://localhost:8000/app")
+    print(f"  API Docs: http://localhost:8000/docs")
+    print("=" * 56)
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

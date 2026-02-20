@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Code Review & Rewrite Agent</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Marked.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark:       '#0a0a0f',
+                        surface:    '#12121a',
+                        'surface-2':'#1a1a26',
+                        border:     '#1e1e2e',
+                        primary:    '#6c63ff',
+                        'primary-h':'#7f78ff',
+                    },
+                    fontFamily: {
+                        sans:  ['Inter','Segoe UI','system-ui','sans-serif'],
+                        mono:  ['Cascadia Code','Fira Code','JetBrains Mono','Consolas','monospace'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        /* Scrollbar */
+        ::-webkit-scrollbar { width:6px; height:6px }
+        ::-webkit-scrollbar-track { background:transparent }
+        ::-webkit-scrollbar-thumb { background:#2a2a3d; border-radius:3px }
+        ::-webkit-scrollbar-thumb:hover { background:#3a3a5d }
+        /* Pulse animation for loader */
+        @keyframes pulse-dot{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+        .dot{width:10px;height:10px;border-radius:50%;display:inline-block;animation:pulse-dot 1.4s infinite ease-in-out both}
+        .dot:nth-child(1){animation-delay:-.32s}
+        .dot:nth-child(2){animation-delay:-.16s}
+        /* Markdown output styles */
+        .md-output h1,.md-output h2,.md-output h3{margin:14px 0 6px;font-weight:700}
+        .md-output h1{font-size:1.3rem}.md-output h2{font-size:1.1rem}.md-output h3{font-size:1rem}
+        .md-output p{margin-bottom:8px}.md-output ul,.md-output ol{margin-left:18px;margin-bottom:8px}
+        .md-output li{margin-bottom:4px}
+        .md-output code{background:#1a1a26;padding:2px 6px;border-radius:4px;font-size:.82rem}
+        .md-output pre{background:#12121a;border:1px solid #1e1e2e;border-radius:8px;padding:14px;margin:10px 0;overflow-x:auto}
+        .md-output pre code{background:transparent;padding:0}
+        .md-output blockquote{border-left:3px solid #6c63ff;padding-left:12px;color:#8888a0;margin:8px 0}
+        .md-output a{color:#6c63ff;text-decoration:underline}
+        /* Tab underline */
+        .tab-active{color:#6c63ff !important;border-color:#6c63ff !important}
+    </style>
+</head>
+
+<body class="bg-dark text-gray-200 font-sans min-h-screen flex flex-col">
+
+    <!-- ═══════════════════ HEADER ═══════════════════ -->
+    <header class="bg-surface border-b border-border px-6 py-3 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-code text-primary text-xl"></i>
+            <h1 class="text-lg font-bold tracking-tight">AI Code Review & Rewrite Agent</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <span id="apiBadge" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> API Connected
+            </span>
+            <button id="logoutBtn" class="text-gray-500 hover:text-red-400 transition text-sm" title="Log out">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══════════════════ TABS ═══════════════════ -->
+    <div class="bg-surface border-b border-border px-6 flex gap-0 flex-shrink-0">
+        <button data-tab="review" class="tab-btn tab-active px-5 py-3 text-sm font-semibold border-b-2 border-transparent transition hover:text-primary">
+            <i class="fa-solid fa-magnifying-glass mr-1.5"></i>Code Review
+        </button>
+        <button data-tab="rewrite" class="tab-btn px-5 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent transition hover:text-primary">
+            <i class="fa-solid fa-pen-to-square mr-1.5"></i>Rewrite Code
+        </button>
+        <button data-tab="howItWorks" class="tab-btn px-5 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent transition hover:text-primary">
+            <i class="fa-solid fa-circle-info mr-1.5"></i>How It Works
+        </button>
+    </div>
+
+    <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+    <div class="flex-1 overflow-hidden flex">
+
+        <!-- ─── TAB: CODE REVIEW ──────────────────────── -->
+        <div id="tab-review" class="tab-content flex-1 flex overflow-hidden">
+
+            <!-- LEFT PANEL -->
+            <div class="w-[420px] min-w-[360px] bg-surface border-r border-border flex flex-col flex-shrink-0 overflow-y-auto">
+                <div class="p-5 space-y-5">
+
+                    <!-- Language -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                            <i class="fa-solid fa-globe mr-1"></i>Language
+                        </label>
+                        <select id="langSelect" class="w-full bg-dark border border-border text-gray-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-primary transition">
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="java">Java</option>
+                            <option value="cpp">C++</option>
+                            <option value="c">C</option>
+                            <option value="csharp">C#</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="php">PHP</option>
+                            <option value="swift">Swift</option>
+                            <option value="kotlin">Kotlin</option>
+                            <option value="sql">SQL</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                        </select>
+                    </div>
+
+                    <!-- Code textarea -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                            <i class="fa-solid fa-file-code mr-1"></i>Your Code
+                        </label>
+                        <textarea id="codeInput" rows="14" spellcheck="false" placeholder="Paste your code here…"
+                            class="w-full bg-dark border border-border text-gray-200 font-mono text-[13px] leading-relaxed rounded-lg px-4 py-3 outline-none focus:border-primary transition resize-none"></textarea>
+                    </div>
+
+                    <!-- Focus Areas -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            <i class="fa-solid fa-crosshairs mr-1"></i>Focus Areas
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+                                <input type="checkbox" value="security" checked class="accent-primary rounded"> Security
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+                                <input type="checkbox" value="performance" checked class="accent-primary rounded"> Performance
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+                                <input type="checkbox" value="readability" checked class="accent-primary rounded"> Readability
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+                                <input type="checkbox" value="best_practices" checked class="accent-primary rounded"> Best Practices
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+                                <input type="checkbox" value="error_handling" class="accent-primary rounded"> Error Handling
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
+                                <input type="checkbox" value="documentation" class="accent-primary rounded"> Documentation
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex gap-3">
+                        <button id="reviewBtn"
+                            class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary-h text-white font-semibold text-sm transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-magnifying-glass"></i> Review
+                        </button>
+                        <button id="rewriteFromReviewBtn"
+                            class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-solid fa-pen-to-square"></i> Rewrite
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL — Review Results -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <!-- Severity counters -->
+                <div id="severityBar" class="hidden bg-surface border-b border-border px-5 py-3 flex-shrink-0">
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Issues Found</span>
+                        <span id="countCritical" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">
+                            <i class="fa-solid fa-circle-xmark"></i> Critical: <b>0</b>
+                        </span>
+                        <span id="countHigh" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">
+                            <i class="fa-solid fa-triangle-exclamation"></i> High: <b>0</b>
+                        </span>
+                        <span id="countMedium" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
+                            <i class="fa-solid fa-circle-exclamation"></i> Medium: <b>0</b>
+                        </span>
+                        <span id="countLow" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                            <i class="fa-solid fa-circle-info"></i> Low: <b>0</b>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Result card -->
+                <div class="flex-1 overflow-y-auto p-5">
+                    <div id="reviewResult" class="bg-surface border border-border rounded-xl p-6 min-h-[200px] relative">
+                        <!-- Copy button -->
+                        <button id="copyReview" class="hidden absolute top-4 right-4 text-gray-500 hover:text-primary transition text-sm" title="Copy to clipboard">
+                            <i class="fa-regular fa-copy"></i> Copy
+                        </button>
+                        <!-- Placeholder -->
+                        <div id="reviewPlaceholder" class="flex flex-col items-center justify-center text-gray-600 py-16">
+                            <i class="fa-solid fa-magnifying-glass-chart text-4xl mb-4 text-gray-700"></i>
+                            <p class="text-sm">Review results will appear here</p>
+                            <p class="text-xs mt-1 text-gray-700">Paste code, select focus areas, then click Review</p>
+                        </div>
+                        <!-- Markdown output -->
+                        <div id="reviewOutput" class="hidden md-output text-sm leading-relaxed text-gray-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── TAB: REWRITE CODE ─────────────────────── -->
+        <div id="tab-rewrite" class="tab-content flex-1 hidden overflow-hidden flex flex-col">
+
+            <!-- Top controls -->
+            <div class="bg-surface border-b border-border px-5 py-3 flex items-center gap-4 flex-shrink-0">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <i class="fa-solid fa-globe mr-1"></i>Language
+                </label>
+                <select id="rewriteLangSelect" class="bg-dark border border-border text-gray-200 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-primary transition">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="c">C</option>
+                    <option value="csharp">C#</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                </select>
+                <div class="flex-1"></div>
+                <button id="rewriteBtn"
+                    class="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary hover:bg-primary-h text-white font-semibold text-sm transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite Code
+                </button>
+            </div>
+
+            <!-- Side-by-side panels -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Original -->
+                <div class="flex-1 flex flex-col border-r border-border">
+                    <div class="bg-surface-2 px-5 py-2 flex items-center justify-between border-b border-border">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-file-lines mr-1"></i>Original Code</span>
+                    </div>
+                    <div class="flex-1 overflow-hidden">
+                        <textarea id="rewriteInput" rows="20" spellcheck="false" placeholder="Paste your code here…"
+                            class="w-full h-full bg-dark text-gray-200 font-mono text-[13px] leading-relaxed px-5 py-4 outline-none resize-none border-none"></textarea>
+                    </div>
+                </div>
+                <!-- Rewritten -->
+                <div class="flex-1 flex flex-col">
+                    <div class="bg-surface-2 px-5 py-2 flex items-center justify-between border-b border-border">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Rewritten Code</span>
+                        <button id="copyRewritten" class="hidden text-gray-500 hover:text-primary transition text-xs" title="Copy rewritten code">
+                            <i class="fa-regular fa-copy mr-1"></i>Copy
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto">
+                        <!-- Placeholder -->
+                        <div id="rewritePlaceholder" class="flex flex-col items-center justify-center text-gray-600 py-20">
+                            <i class="fa-solid fa-wand-magic-sparkles text-4xl mb-4 text-gray-700"></i>
+                            <p class="text-sm">Rewritten code will appear here</p>
+                        </div>
+                        <!-- Code output -->
+                        <pre id="rewriteOutput" class="hidden"><code id="rewriteCode" class="font-mono text-[13px] leading-relaxed p-5"></code></pre>
+                        <!-- Improvements list -->
+                        <div id="improvementsSection" class="hidden border-t border-border px-5 py-4">
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                                <i class="fa-solid fa-check-double mr-1 text-emerald-400"></i>Improvements Made
+                            </h4>
+                            <ul id="improvementsList" class="space-y-1 text-sm text-gray-300"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── TAB: HOW IT WORKS ─────────────────────── -->
+        <div id="tab-howItWorks" class="tab-content flex-1 hidden overflow-y-auto">
+            <div class="max-w-3xl mx-auto py-12 px-6 space-y-10">
+
+                <div class="text-center">
+                    <i class="fa-solid fa-microchip text-primary text-5xl mb-4"></i>
+                    <h2 class="text-2xl font-bold mb-2">How It Works</h2>
+                    <p class="text-gray-500 text-sm max-w-lg mx-auto">This agent uses Google's Gemini 2.5 Flash model to review and rewrite your code in seconds.</p>
+                </div>
+
+                <!-- Steps -->
+                <div class="grid gap-6 sm:grid-cols-3">
+                    <div class="bg-surface border border-border rounded-xl p-6 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/15 flex items-center justify-center">
+                            <i class="fa-solid fa-paste text-primary text-lg"></i>
+                        </div>
+                        <h3 class="font-semibold mb-1">1. Paste Code</h3>
+                        <p class="text-xs text-gray-500">Paste your source code and select the programming language.</p>
+                    </div>
+                    <div class="bg-surface border border-border rounded-xl p-6 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                            <i class="fa-solid fa-brain text-emerald-400 text-lg"></i>
+                        </div>
+                        <h3 class="font-semibold mb-1">2. AI Analysis</h3>
+                        <p class="text-xs text-gray-500">Gemini 2.5 Flash analyses your code for bugs, security issues, and improvements.</p>
+                    </div>
+                    <div class="bg-surface border border-border rounded-xl p-6 text-center">
+                        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-orange-500/15 flex items-center justify-center">
+                            <i class="fa-solid fa-rocket text-orange-400 text-lg"></i>
+                        </div>
+                        <h3 class="font-semibold mb-1">3. Get Results</h3>
+                        <p class="text-xs text-gray-500">Receive detailed review or production-ready rewritten code instantly.</p>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="bg-surface border border-border rounded-xl p-6">
+                    <h3 class="font-semibold mb-4"><i class="fa-solid fa-bolt text-primary mr-2"></i>Features</h3>
+                    <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Bug & vulnerability detection</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Production-grade code rewriting</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Performance optimisation tips</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Automatic docstrings & comments</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>16 programming languages</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Severity-ranked issue reports</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Side-by-side code comparison</div>
+                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Copy to clipboard</div>
+                    </div>
+                </div>
+
+                <!-- Tech -->
+                <div class="text-center text-xs text-gray-600 space-y-1">
+                    <p>Powered by <strong class="text-gray-400">Google Gemini</strong> &times; <strong class="text-gray-400">Gemini 2.5 Flash</strong></p>
+                    <p>Built with FastAPI &middot; Tailwind CSS &middot; Highlight.js</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════ LOADING OVERLAY ═══════════════════ -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-surface border border-border rounded-2xl px-8 py-6 flex flex-col items-center gap-4 shadow-2xl">
+            <div class="flex gap-2">
+                <span class="dot bg-primary"></span>
+                <span class="dot bg-primary"></span>
+                <span class="dot bg-primary"></span>
+            </div>
+            <p id="loadingText" class="text-sm text-gray-400">Analysing with Gemini 2.5 Flash…</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ SCRIPT ═══════════════════ -->
+    <script>
+    (function () {
+        "use strict";
+
+        /* ── Auth guard ─────────────────────────────────── */
+        if (sessionStorage.getItem("authenticated") !== "true") {
+            window.location.href = "/login";
+        }
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            sessionStorage.clear();
+            window.location.href = "/login";
+        });
+
+        /* ── Constants ──────────────────────────────────── */
+        const API = window.location.origin;
+
+        /* ── Marked config ──────────────────────────────── */
+        marked.setOptions({
+            highlight(code, lang) {
+                if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true,
+        });
+
+        /* ── Tab switching ──────────────────────────────── */
+        const tabBtns     = document.querySelectorAll(".tab-btn");
+        const tabContents = document.querySelectorAll(".tab-content");
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener("click", () => {
+                tabBtns.forEach(b => { b.classList.remove("tab-active"); b.classList.add("text-gray-500"); });
+                btn.classList.add("tab-active"); btn.classList.remove("text-gray-500");
+                tabContents.forEach(c => c.classList.add("hidden"));
+                document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+            });
+        });
+
+        /* ── Loading overlay helpers ────────────────────── */
+        const overlay     = document.getElementById("loadingOverlay");
+        const loadingText = document.getElementById("loadingText");
+        function showLoading(msg) { loadingText.textContent = msg; overlay.classList.remove("hidden"); }
+        function hideLoading() { overlay.classList.add("hidden"); }
+
+        /* ── Clipboard helper ───────────────────────────── */
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const prev = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Copied!';
+                btn.classList.add("text-emerald-400");
+                setTimeout(() => { btn.innerHTML = prev; btn.classList.remove("text-emerald-400"); }, 1500);
+            });
+        }
+
+        /* ═══════════════════════════════════════════════════
+           CODE REVIEW TAB
+        ═══════════════════════════════════════════════════ */
+        const reviewBtn       = document.getElementById("reviewBtn");
+        const codeInput       = document.getElementById("codeInput");
+        const langSelect      = document.getElementById("langSelect");
+        const severityBar     = document.getElementById("severityBar");
+        const reviewPlaceholder = document.getElementById("reviewPlaceholder");
+        const reviewOutput    = document.getElementById("reviewOutput");
+        const copyReview      = document.getElementById("copyReview");
+
+        reviewBtn.addEventListener("click", () => runReview());
+
+        async function runReview() {
+            const code = codeInput.value.trim();
+            if (!code) { alert("Please paste some code first."); return; }
+
+            // Gather focus areas
+            const areas = [...document.querySelectorAll('#tab-review input[type="checkbox"]:checked')].map(c => c.value);
+            const extra = areas.length ? "Focus on: " + areas.join(", ") : null;
+
+            reviewBtn.disabled = true;
+            showLoading("Reviewing code with Gemini 2.5 Flash…");
+
+            try {
+                const res = await fetch(`${API}/review`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code, language: langSelect.value, instructions: extra }),
+                });
+                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+                const data = await res.json();
+                const md = data.result || "No output.";
+
+                // Render markdown
+                reviewPlaceholder.classList.add("hidden");
+                reviewOutput.classList.remove("hidden");
+                reviewOutput.innerHTML = marked.parse(md);
+                reviewOutput.querySelectorAll("pre code").forEach(b => hljs.highlightElement(b));
+
+                // Count severities
+                countSeverities(md);
+
+                // Show copy button
+                copyReview.classList.remove("hidden");
+            } catch (err) {
+                reviewOutput.classList.remove("hidden");
+                reviewPlaceholder.classList.add("hidden");
+                reviewOutput.innerHTML = `<p class="text-red-400"><i class="fa-solid fa-circle-xmark mr-1"></i>${err.message}</p>`;
+            } finally {
+                reviewBtn.disabled = false;
+                hideLoading();
+            }
+        }
+
+        function countSeverities(md) {
+            // Try to parse the structured summary line: "Critical: X | High: X | Medium: X | Low: X"
+            let critical = 0, high = 0, medium = 0, low = 0;
+            const summaryMatch = md.match(/Critical:\s*(\d+)\s*\|\s*High:\s*(\d+)\s*\|\s*Medium:\s*(\d+)\s*\|\s*Low:\s*(\d+)/i);
+            if (summaryMatch) {
+                critical = parseInt(summaryMatch[1], 10);
+                high     = parseInt(summaryMatch[2], 10);
+                medium   = parseInt(summaryMatch[3], 10);
+                low      = parseInt(summaryMatch[4], 10);
+            } else {
+                // Fallback: count severity headings (## Critical Issues, ## High Issues, etc.)
+                critical = (md.match(/##.*Critical/gi) || []).length;
+                high     = (md.match(/##.*High/gi)     || []).length;
+                medium   = (md.match(/##.*Medium/gi)   || []).length;
+                low      = (md.match(/##.*Low/gi)      || []).length;
+            }
+
+            document.querySelector("#countCritical b").textContent = critical;
+            document.querySelector("#countHigh b").textContent     = high;
+            document.querySelector("#countMedium b").textContent   = medium;
+            document.querySelector("#countLow b").textContent      = low;
+            severityBar.classList.remove("hidden");
+        }
+
+        copyReview.addEventListener("click", () => copyText(reviewOutput.innerText, copyReview));
+
+        /* ── Rewrite from Review tab ───────────────────── */
+        const rewriteFromReviewBtn = document.getElementById("rewriteFromReviewBtn");
+        rewriteFromReviewBtn.addEventListener("click", () => {
+            const code = codeInput.value.trim();
+            if (!code) { alert("Please paste some code first."); return; }
+            // Copy code to rewrite tab and switch
+            document.getElementById("rewriteInput").value = code;
+            document.getElementById("rewriteLangSelect").value = langSelect.value;
+            document.querySelector('[data-tab="rewrite"]').click();
+            runRewrite();
+        });
+
+        /* ═══════════════════════════════════════════════════
+           REWRITE TAB
+        ═══════════════════════════════════════════════════ */
+        const rewriteBtn         = document.getElementById("rewriteBtn");
+        const rewriteInput       = document.getElementById("rewriteInput");
+        const rewriteLangSelect  = document.getElementById("rewriteLangSelect");
+        const rewritePlaceholder = document.getElementById("rewritePlaceholder");
+        const rewriteOutput      = document.getElementById("rewriteOutput");
+        const rewriteCode        = document.getElementById("rewriteCode");
+        const copyRewritten      = document.getElementById("copyRewritten");
+        const improvementsSection = document.getElementById("improvementsSection");
+        const improvementsList   = document.getElementById("improvementsList");
+
+        rewriteBtn.addEventListener("click", () => runRewrite());
+
+        async function runRewrite() {
+            const code = rewriteInput.value.trim();
+            if (!code) { alert("Please paste some code first."); return; }
+
+            rewriteBtn.disabled = true;
+            showLoading("Rewriting code to production quality…");
+
+            try {
+                const res = await fetch(`${API}/api/rewrite`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code, language: rewriteLangSelect.value }),
+                });
+                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+                const data = await res.json();
+
+                // Show rewritten code
+                rewritePlaceholder.classList.add("hidden");
+                rewriteOutput.classList.remove("hidden");
+                rewriteCode.textContent = data.rewritten_code;
+                rewriteCode.className = `language-${rewriteLangSelect.value} font-mono text-[13px] leading-relaxed p-5`;
+                hljs.highlightElement(rewriteCode);
+
+                // Show improvements
+                if (data.improvements && data.improvements.length > 0) {
+                    improvementsSection.classList.remove("hidden");
+                    improvementsList.innerHTML = data.improvements
+                        .map(imp => {
+                            const safe = imp.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                            return `<li class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 text-xs"></i>${safe}</li>`;
+                        })
+                        .join("");
+                }
+
+                // Show copy
+                copyRewritten.classList.remove("hidden");
+            } catch (err) {
+                rewritePlaceholder.classList.add("hidden");
+                rewriteOutput.classList.remove("hidden");
+                rewriteCode.textContent = `Error: ${err.message}`;
+                rewriteCode.className = "text-red-400 font-mono text-[13px] leading-relaxed p-5";
+            } finally {
+                rewriteBtn.disabled = false;
+                hideLoading();
+            }
+        }
+
+        copyRewritten.addEventListener("click", () => copyText(rewriteCode.textContent, copyRewritten));
+
+        /* ── Health check on load ───────────────────────── */
+        const badge = document.getElementById("apiBadge");
+        fetch(`${API}/`).then(r => r.json()).then(d => {
+            if (d.status === "API Connected") {
+                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> API Connected';
+            }
+        }).catch(() => {
+            badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span> API Offline';
+            badge.classList.remove("bg-emerald-500/15","text-emerald-400","border-emerald-500/30");
+            badge.classList.add("bg-red-500/15","text-red-400","border-red-500/30");
+        });
+
+        /* ── Keyboard shortcut: Ctrl+Enter ──────────────── */
+        document.addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                const activeTab = document.querySelector(".tab-btn.tab-active")?.dataset.tab;
+                if (activeTab === "review") reviewBtn.click();
+                else if (activeTab === "rewrite") rewriteBtn.click();
+            }
+        });
+
+    })();
+    </script>
+</body>
+</html>

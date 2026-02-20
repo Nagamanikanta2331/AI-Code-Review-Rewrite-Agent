@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login — AI Code Review Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary:        '#6c63ff',
+                        'primary-h':    '#7f78ff',
+                        surface:        '#12121a',
+                        'surface-2':    '#1a1a26',
+                        border:         '#1e1e2e',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        @keyframes float-a { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-18px) scale(1.04)} }
+        @keyframes float-b { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(14px) scale(1.06)} }
+        .orb-a { animation: float-a 8s ease-in-out infinite; }
+        .orb-b { animation: float-b 10s ease-in-out 2s infinite; }
+        input:focus { box-shadow: 0 0 0 2px rgba(108,99,255,.45); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a0f] via-[#0f0f1a] to-[#0a0a0f] overflow-hidden relative font-sans text-white">
+
+    <!-- Ambient glow orbs -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div class="orb-a absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]"></div>
+        <div class="orb-b absolute -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-purple-600/10 blur-[140px]"></div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="relative z-10 w-full max-w-md mx-4">
+        <div class="bg-surface border border-border rounded-2xl shadow-2xl shadow-black/50 p-8 sm:p-10">
+
+            <!-- Title -->
+            <div class="text-center mb-8">
+                <span class="text-5xl block mb-3 select-none">🤖</span>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">AI Code Review Agent</h1>
+                <p class="text-gray-500 text-sm mt-2">Sign in to your account</p>
+            </div>
+
+            <!-- Form -->
+            <form id="loginForm" class="space-y-5" autocomplete="off">
+
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Email</label>
+                    <input
+                        type="email" id="email" placeholder="admin@example.com" required
+                        class="w-full px-4 py-3 rounded-lg bg-[#0a0a0f] border border-border text-white placeholder-gray-600 text-sm outline-none transition-colors duration-200 focus:border-primary"
+                    />
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label for="password" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Password</label>
+                    <div class="relative">
+                        <input
+                            type="password" id="password" placeholder="••••••••" required
+                            class="w-full px-4 py-3 rounded-lg bg-[#0a0a0f] border border-border text-white placeholder-gray-600 text-sm outline-none transition-colors duration-200 focus:border-primary pr-11"
+                        />
+                        <button type="button" id="togglePwd" aria-label="Toggle password visibility"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors text-sm select-none">👁</button>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <p id="errorMsg" class="text-red-400 text-sm text-center hidden"></p>
+
+                <!-- Submit -->
+                <button type="submit" id="loginBtn"
+                    class="w-full py-3 rounded-lg bg-primary hover:bg-primary-h text-white font-semibold text-sm transition-all duration-200 active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="flex items-center gap-3 my-6">
+                <span class="flex-1 h-px bg-border"></span>
+                <span class="text-[11px] text-gray-600 uppercase tracking-wider">Demo Credentials</span>
+                <span class="flex-1 h-px bg-border"></span>
+            </div>
+
+            <!-- Demo credentials -->
+            <div class="bg-surface-2 border border-border rounded-lg p-4 text-sm space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">Email</span>
+                    <code class="text-gray-300 font-mono text-xs bg-[#0a0a0f] px-2 py-0.5 rounded select-all">admin@example.com</code>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">Password</span>
+                    <code class="text-gray-300 font-mono text-xs bg-[#0a0a0f] px-2 py-0.5 rounded select-all">admin123</code>
+                </div>
+            </div>
+
+            <p class="text-center text-[11px] text-gray-600 mt-6">Secured with session authentication</p>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        const VALID_EMAIL    = "admin@example.com";
+        const VALID_PASSWORD = "admin123";
+
+        const form      = document.getElementById("loginForm");
+        const emailEl   = document.getElementById("email");
+        const passEl    = document.getElementById("password");
+        const errorMsg  = document.getElementById("errorMsg");
+        const loginBtn  = document.getElementById("loginBtn");
+        const togglePwd = document.getElementById("togglePwd");
+
+        // Toggle password visibility
+        togglePwd.addEventListener("click", () => {
+            const show = passEl.type === "password";
+            passEl.type = show ? "text" : "password";
+            togglePwd.textContent = show ? "🙈" : "👁";
+        });
+
+        // Submit
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            errorMsg.classList.add("hidden");
+
+            const email = emailEl.value.trim();
+            const password = passEl.value;
+
+            if (!email || !password) { showError("Please fill in all fields."); return; }
+
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = `<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>Signing in…</span>`;
+
+            setTimeout(() => {
+                if (email === VALID_EMAIL && password === VALID_PASSWORD) {
+                    sessionStorage.setItem("authenticated", "true");
+                    sessionStorage.setItem("user", email);
+                    window.location.href = "/app";
+                } else {
+                    showError("Invalid email or password.");
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = "Sign In";
+                }
+            }, 700);
+        });
+
+        function showError(msg) { errorMsg.textContent = msg; errorMsg.classList.remove("hidden"); }
+
+        // Auto-redirect if already logged in
+        if (sessionStorage.getItem("authenticated") === "true") {
+            window.location.href = "/app";
+        }
+    </script>
+</body>
+</html>
