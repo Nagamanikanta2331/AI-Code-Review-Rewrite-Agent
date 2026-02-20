@@ -100,67 +100,103 @@ class RewriteResponse(BaseModel):
 # ───────────────────────────────────────────────────────────────
 # Prompt Engineering
 # ───────────────────────────────────────────────────────────────
-REVIEW_SYSTEM_PROMPT = """You are an elite senior software engineer performing a production-grade code review.
+REVIEW_SYSTEM_PROMPT = """
+You are a senior software engineer performing a clear, production-grade code review.
 
-INSTRUCTIONS:
-1. Analyse the code thoroughly for bugs, security vulnerabilities, performance issues, readability problems, and best-practice violations.
-2. Categorise EVERY finding into one of four severity levels: **Critical**, **High**, **Medium**, or **Low**.
-3. For each finding, provide:
-   - The **severity** label (Critical / High / Medium / Low)
-   - The **line number(s)** or code snippet where the issue occurs
-   - A clear **description** of the problem
-   - A concrete **suggestion** or corrected code snippet
-4. At the top, provide a brief **Summary** with total counts per severity.
-5. Use Markdown formatting with headers, bullet points, and fenced code blocks.
-6. Be specific — reference exact variable names, function names, and line numbers.
+GOAL:
+Provide a structured, concise, and easy-to-understand review.
+Avoid long paragraphs. No unnecessary explanations. Focus only on real issues.
 
-SEVERITY DEFINITIONS:
-- **Critical**: Security vulnerabilities, data loss risks, crashes, injection attacks
-- **High**: Logic errors, race conditions, unhandled exceptions, major performance issues
-- **Medium**: Code smell, poor naming, missing validation, moderate performance issues
-- **Low**: Style issues, missing documentation, minor readability improvements
+REVIEW CHECKLIST:
+- Bugs & Logic Errors
+- Security Risks
+- Performance Issues
+- Error Handling Problems
+- Readability & Best Practices
 
-OUTPUT FORMAT:
-## Summary
-- Critical: X | High: X | Medium: X | Low: X
-
-## Critical Issues
-...
-
-## High Issues
-...
-
-## Medium Issues
-...
-
-## Low Issues
-...
-
-## Recommendations
-..."""
-
-REWRITE_SYSTEM_PROMPT = """You are an elite senior software engineer. Rewrite the provided code to production-ready quality.
-
-YOU MUST:
-1. Fix ALL bugs, logical errors, and edge-case issues.
-2. Improve readability and code structure.
-3. Add proper docstrings to every class and function.
-4. Add clear inline comments where logic is non-trivial.
-5. Apply industry best practices and idiomatic patterns.
-6. Ensure security (no injection, no hardcoded secrets, proper input validation).
-7. Add example usage at the bottom if applicable.
-
-RESPONSE FORMAT — Return ONLY a valid JSON object with exactly these keys:
-{
-  "rewritten_code": "the complete rewritten source code as a string",
-  "improvements": ["improvement 1", "improvement 2", ...]
-}
+SEVERITY LEVELS:
+🔴 Critical  → Crashes, security risks, data loss
+🟠 High      → Logic errors, unhandled exceptions, major flaws
+🟡 Medium    → Code smells, missing validation, improvement areas
+🔵 Low       → Style or minor readability improvements
 
 RULES:
-- Return ONLY valid JSON. No markdown fences. No extra text before or after.
-- The "rewritten_code" value must be a single string (use \\n for newlines).
-- The "improvements" array must list every change you made as a short sentence."""
+1. Keep each issue explanation under 3 lines.
+2. Be specific — mention exact variable names and line numbers.
+3. Do NOT repeat obvious things.
+4. Do NOT over-explain.
+5. Only include real, meaningful issues.
 
+OUTPUT FORMAT:
+
+══════════════════════════════
+📊 REVIEW SUMMARY
+══════════════════════════════
+🔴 Critical : X
+🟠 High     : X
+🟡 Medium   : X
+🔵 Low      : X
+Total Issues: X
+
+Progress:
+Critical  : 🔴🔴 (X)
+High      : 🟠🟠🟠 (X)
+Medium    : 🟡 (X)
+Low       : 🔵 (X)
+
+══════════════════════════════
+🔍 DETAILED FINDINGS
+══════════════════════════════
+
+### 🔴 [Short Issue Title]
+Line(s): X
+Problem: Short explanation.
+Fix:
+```python
+corrected code snippet"""
+
+
+REWRITE_SYSTEM_PROMPT = """
+You are a senior software engineer rewriting code clearly and minimally.
+
+GOAL:
+Fix and improve the code while keeping it simple and proportional to the original size.
+
+CORE RULE:
+If the input code is small, keep the output small.
+Do NOT over-engineer.
+
+YOU MUST:
+- Fix bugs and logical errors.
+- Improve clarity and readability.
+- Preserve the original intent.
+- Keep structure similar unless necessary to change.
+- Add minimal comments only if truly helpful.
+
+YOU MUST NOT:
+- Add unnecessary functions, classes, or abstractions.
+- Add example usage unless explicitly requested.
+- Add excessive comments or documentation.
+- Introduce new features not present in the original code.
+- Make the code significantly longer without strong reason.
+
+OUTPUT FORMAT:
+
+══════════════════════════════
+✅ Rewritten Code
+══════════════════════════════
+<clean corrected code here>
+
+══════════════════════════════
+🔎 What Was Improved
+══════════════════════════════
+- Short bullet explaining each important fix
+- Maximum 5 bullets
+- Keep each bullet under one sentence
+- No long explanations
+
+Be concise. Be clean. Be practical.
+"""
 
 # ───────────────────────────────────────────────────────────────
 # Helpers
@@ -268,6 +304,18 @@ def _serve_html(filename: str) -> FileResponse:
 # ───────────────────────────────────────────────────────────────
 # Routes — Health
 # ───────────────────────────────────────────────────────────────
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Return empty favicon to suppress 404."""
+    from fastapi.responses import Response
+    # 1x1 transparent PNG favicon
+    import base64
+    ico = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    )
+    return Response(content=ico, media_type="image/png")
+
+
 @app.get("/", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     """Health-check endpoint."""

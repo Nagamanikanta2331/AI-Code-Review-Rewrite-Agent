@@ -1,113 +1,737 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Code Review & Rewrite Agent</title>
+    <title>AI Code Review &amp; Rewrite Agent</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <!-- Highlight.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+
+    <!-- Highlight.js (for markdown code blocks in results) -->
+    <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+    <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" disabled />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
     <!-- Marked.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        dark:       '#0a0a0f',
-                        surface:    '#12121a',
-                        'surface-2':'#1a1a26',
-                        border:     '#1e1e2e',
-                        primary:    '#6c63ff',
-                        'primary-h':'#7f78ff',
-                    },
-                    fontFamily: {
-                        sans:  ['Inter','Segoe UI','system-ui','sans-serif'],
-                        mono:  ['Cascadia Code','Fira Code','JetBrains Mono','Consolas','monospace'],
-                    },
-                },
-            },
-        };
-    </script>
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+    <!-- ═══════════════════ DESIGN SYSTEM ═══════════════════ -->
     <style>
-        /* Scrollbar */
-        ::-webkit-scrollbar { width:6px; height:6px }
-        ::-webkit-scrollbar-track { background:transparent }
-        ::-webkit-scrollbar-thumb { background:#2a2a3d; border-radius:3px }
-        ::-webkit-scrollbar-thumb:hover { background:#3a3a5d }
-        /* Pulse animation for loader */
-        @keyframes pulse-dot{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
-        .dot{width:10px;height:10px;border-radius:50%;display:inline-block;animation:pulse-dot 1.4s infinite ease-in-out both}
-        .dot:nth-child(1){animation-delay:-.32s}
-        .dot:nth-child(2){animation-delay:-.16s}
-        /* Markdown output styles */
-        .md-output h1,.md-output h2,.md-output h3{margin:14px 0 6px;font-weight:700}
-        .md-output h1{font-size:1.3rem}.md-output h2{font-size:1.1rem}.md-output h3{font-size:1rem}
-        .md-output p{margin-bottom:8px}.md-output ul,.md-output ol{margin-left:18px;margin-bottom:8px}
-        .md-output li{margin-bottom:4px}
-        .md-output code{background:#1a1a26;padding:2px 6px;border-radius:4px;font-size:.82rem}
-        .md-output pre{background:#12121a;border:1px solid #1e1e2e;border-radius:8px;padding:14px;margin:10px 0;overflow-x:auto}
-        .md-output pre code{background:transparent;padding:0}
-        .md-output blockquote{border-left:3px solid #6c63ff;padding-left:12px;color:#8888a0;margin:8px 0}
-        .md-output a{color:#6c63ff;text-decoration:underline}
-        /* Tab underline */
-        .tab-active{color:#6c63ff !important;border-color:#6c63ff !important}
+        /* ────────────────────────────────────────
+           CSS Custom Properties — Dark Theme
+        ──────────────────────────────────────── */
+        :root, [data-theme="dark"] {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #1c2128;
+            --bg-elevated: #21262d;
+            --border: #30363d;
+            --border-subtle: rgba(48, 54, 61, 0.5);
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-subtle: rgba(99, 102, 241, 0.12);
+            --accent-glow: rgba(99, 102, 241, 0.2);
+            --success: #3fb950;
+            --success-subtle: rgba(63, 185, 80, 0.12);
+            --warning: #d29922;
+            --warning-subtle: rgba(210, 153, 34, 0.12);
+            --error: #f85149;
+            --error-subtle: rgba(248, 81, 73, 0.12);
+            --info: #58a6ff;
+            --info-subtle: rgba(88, 166, 255, 0.12);
+            --glass-bg: rgba(22, 27, 34, 0.75);
+            --glass-border: rgba(48, 54, 61, 0.45);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.35);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.08);
+            --orb-1: rgba(99, 102, 241, 0.06);
+            --orb-2: rgba(139, 92, 246, 0.05);
+            --overlay: rgba(0, 0, 0, 0.6);
+            color-scheme: dark;
+        }
+
+        /* ────────────────────────────────────────
+           CSS Custom Properties — Light Theme
+        ──────────────────────────────────────── */
+        [data-theme="light"] {
+            --bg-primary: #f6f8fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f0f3f6;
+            --bg-elevated: #e8ecf0;
+            --border: #d0d7de;
+            --border-subtle: rgba(208, 215, 222, 0.5);
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --text-muted: #8b949e;
+            --accent: #4f46e5;
+            --accent-hover: #6366f1;
+            --accent-subtle: rgba(79, 70, 229, 0.08);
+            --accent-glow: rgba(79, 70, 229, 0.12);
+            --success: #1a7f37;
+            --success-subtle: rgba(26, 127, 55, 0.08);
+            --warning: #9a6700;
+            --warning-subtle: rgba(154, 103, 0, 0.08);
+            --error: #cf222e;
+            --error-subtle: rgba(207, 34, 46, 0.08);
+            --info: #0969da;
+            --info-subtle: rgba(9, 105, 218, 0.08);
+            --glass-bg: rgba(255, 255, 255, 0.72);
+            --glass-border: rgba(208, 215, 222, 0.45);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+            --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.06);
+            --orb-1: rgba(79, 70, 229, 0.04);
+            --orb-2: rgba(139, 92, 246, 0.03);
+            --overlay: rgba(255, 255, 255, 0.6);
+            color-scheme: light;
+        }
+
+        /* ────────────────────────────────────────
+           Global Reset & Base
+        ──────────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background 0.35s ease, color 0.35s ease;
+        }
+
+        /* Smooth theme transitions on interactive elements */
+        body *, body *::before, body *::after {
+            transition-property: background, color, border-color, box-shadow, opacity;
+            transition-duration: 0s;
+        }
+        body.theme-transitioning *,
+        body.theme-transitioning *::before,
+        body.theme-transitioning *::after {
+            transition-duration: 0.35s !important;
+            transition-timing-function: ease !important;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ── Ambient Background Orbs ── */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+            transition: background 0.6s ease;
+        }
+        .bg-orb-1 {
+            width: 600px; height: 600px;
+            top: -200px; left: -150px;
+            background: var(--orb-1);
+            animation: float-orb-1 12s ease-in-out infinite;
+        }
+        .bg-orb-2 {
+            width: 500px; height: 500px;
+            bottom: -200px; right: -100px;
+            background: var(--orb-2);
+            animation: float-orb-2 15s ease-in-out 3s infinite;
+        }
+        @keyframes float-orb-1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, -20px) scale(1.05); }
+        }
+        @keyframes float-orb-2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-20px, 15px) scale(1.06); }
+        }
+
+        /* ────────────────────────────────────────
+           Navbar
+        ──────────────────────────────────────── */
+        .navbar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+        .navbar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: -0.3px;
+            color: var(--text-primary);
+        }
+        .logo-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 10px var(--accent-glow);
+        }
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* ── Theme Toggle ── */
+        .theme-toggle {
+            width: 48px; height: 26px;
+            border-radius: 13px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            position: relative;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+        .theme-toggle:hover { border-color: var(--accent); }
+        .toggle-thumb {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            position: absolute;
+            top: 2px; left: 2px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        [data-theme="light"] .toggle-thumb { transform: translateX(22px); }
+        .toggle-icon {
+            position: absolute;
+            font-size: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: opacity 0.3s ease;
+            line-height: 1;
+        }
+        .icon-moon { right: 6px; opacity: 0.4; }
+        .icon-sun  { left: 6px; opacity: 0.4; }
+        [data-theme="dark"]  .icon-moon { opacity: 1; }
+        [data-theme="light"] .icon-sun  { opacity: 1; }
+
+        /* ────────────────────────────────────────
+           Tab Bar
+        ──────────────────────────────────────── */
+        .tab-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            gap: 0;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 15;
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-muted);
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.25s ease, border-color 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .tab-btn:hover { color: var(--text-secondary); }
+        .tab-btn.tab-active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* ────────────────────────────────────────
+           Editor Wrapper (animated glow border)
+        ──────────────────────────────────────── */
+        .editor-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .editor-wrapper:focus-within,
+        .editor-wrapper.active {
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 0 2px var(--accent-glow), var(--shadow-glow);
+        }
+
+        /* ────────────────────────────────────────
+           Buttons
+        ──────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white;
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #34d399);
+            color: white;
+            box-shadow: 0 2px 12px rgba(5, 150, 105, 0.2);
+        }
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(5, 150, 105, 0.3);
+        }
+        .btn-success:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+
+        /* ────────────────────────────────────────
+           Focus Area Chips
+        ──────────────────────────────────────── */
+        .focus-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .focus-chip:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .focus-chip.selected {
+            background: var(--accent-subtle);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent-glow);
+        }
+        .chip-icon {
+            font-size: 11px;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-subtle);
+            color: var(--accent);
+            transition: all 0.2s ease;
+        }
+        .focus-chip.selected .chip-icon {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* ────────────────────────────────────────
+           Severity Badges
+        ──────────────────────────────────────── */
+        .severity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+        .severity-critical { background: var(--error-subtle); color: var(--error); border: 1px solid rgba(248,81,73,0.2); }
+        .severity-high { background: rgba(255,166,87,0.1); color: #ffa657; border: 1px solid rgba(255,166,87,0.2); }
+        .severity-medium { background: var(--warning-subtle); color: var(--warning); border: 1px solid rgba(210,153,34,0.2); }
+        .severity-low { background: var(--info-subtle); color: var(--info); border: 1px solid rgba(88,166,255,0.2); }
+
+        /* ────────────────────────────────────────
+           Select Dropdown
+        ──────────────────────────────────────── */
+        .select-modern {
+            appearance: none;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            padding: 9px 36px 9px 14px;
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        .select-modern:hover { border-color: var(--accent); }
+        .select-modern:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+        .select-modern option { background: var(--bg-secondary); color: var(--text-primary); }
+
+        /* ────────────────────────────────────────
+           Result Card
+        ──────────────────────────────────────── */
+        .result-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .card-3d { transition: transform 0.35s ease, box-shadow 0.35s ease; }
+        .card-3d:hover {
+            transform: perspective(800px) rotateX(-0.3deg) rotateY(0.3deg) translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* ────────────────────────────────────────
+           Markdown Output
+        ──────────────────────────────────────── */
+        .md-output h1, .md-output h2, .md-output h3 { margin: 16px 0 8px; font-weight: 700; color: var(--text-primary); }
+        .md-output h1 { font-size: 1.25rem; }
+        .md-output h2 { font-size: 1.1rem; }
+        .md-output h3 { font-size: 1rem; }
+        .md-output p { margin-bottom: 10px; line-height: 1.65; }
+        .md-output ul, .md-output ol { margin-left: 18px; margin-bottom: 10px; }
+        .md-output li { margin-bottom: 5px; line-height: 1.55; }
+        .md-output code {
+            background: var(--bg-tertiary);
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.82rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .md-output pre {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+        .md-output pre code { background: transparent; padding: 0; }
+        .md-output blockquote { border-left: 3px solid var(--accent); padding-left: 14px; color: var(--text-secondary); margin: 10px 0; }
+        .md-output a { color: var(--accent); text-decoration: underline; }
+        .md-output strong { color: var(--text-primary); }
+
+        /* ────────────────────────────────────────
+           Loading Overlay
+        ──────────────────────────────────────── */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--overlay);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--shadow-lg);
+        }
+        .loading-dots { display: flex; gap: 8px; }
+        .loading-dots span {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: dot-pulse 1.4s infinite ease-in-out both;
+        }
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes dot-pulse {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ────────────────────────────────────────
+           Utility Classes
+        ──────────────────────────────────────── */
+        .hidden { display: none !important; }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .copy-btn:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: var(--accent-subtle);
+        }
+
+        .controls-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .panel-header {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .panel-header-label {
+            font-size: 11.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .empty-state i { font-size: 40px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state p { font-size: 13px; line-height: 1.6; }
+
+        .api-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+        .api-badge.connected { background: var(--success-subtle); color: var(--success); border: 1px solid rgba(63,185,80,0.2); }
+        .api-badge.disconnected { background: var(--error-subtle); color: var(--error); border: 1px solid rgba(248,81,73,0.2); }
+        .pulse-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse-anim 2s ease-in-out infinite;
+        }
+        @keyframes pulse-anim { 0%,100% { opacity:1; } 50% { opacity:0.35; } }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 15px;
+            padding: 4px;
+            transition: color 0.2s ease;
+        }
+        .icon-btn:hover { color: var(--text-primary); }
+        .icon-btn.danger:hover { color: var(--error); }
+
+        .editor-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            font-size: 13px;
+            gap: 8px;
+        }
+        .editor-loading i { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Step Cards (How It Works) ── */
+        .step-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .step-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent);
+        }
+        .step-icon {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .feature-item:hover { background: var(--bg-tertiary); }
+
+        .improvement-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
     </style>
 </head>
 
-<body class="bg-dark text-gray-200 font-sans min-h-screen flex flex-col">
+<body>
+    <!-- ═══════════════════ BACKGROUND ORBS ═══════════════════ -->
+    <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
+    <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
 
-    <!-- ═══════════════════ HEADER ═══════════════════ -->
-    <header class="bg-surface border-b border-border px-6 py-3 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center gap-3">
-            <i class="fa-solid fa-code text-primary text-xl"></i>
-            <h1 class="text-lg font-bold tracking-tight">AI Code Review & Rewrite Agent</h1>
+    <!-- ═══════════════════ NAVBAR ═══════════════════ -->
+    <nav class="navbar">
+        <div class="navbar-logo">
+            <div class="logo-icon"><i class="fa-solid fa-code"></i></div>
+            <span>AI Code Review</span>
         </div>
-        <div class="flex items-center gap-4">
-            <span id="apiBadge" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> API Connected
+        <div class="navbar-actions">
+            <span id="apiBadge" class="api-badge connected">
+                <span class="pulse-dot"></span> API Connected
             </span>
-            <button id="logoutBtn" class="text-gray-500 hover:text-red-400 transition text-sm" title="Log out">
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light theme">
+                <span class="toggle-icon icon-sun">☀️</span>
+                <span class="toggle-icon icon-moon">🌙</span>
+                <div class="toggle-thumb"></div>
+            </button>
+            <a href="https://github.com" target="_blank" rel="noopener" title="GitHub" class="icon-btn">
+                <i class="fa-brands fa-github"></i>
+            </a>
+            <button id="logoutBtn" class="icon-btn danger" title="Log out">
                 <i class="fa-solid fa-right-from-bracket"></i>
             </button>
         </div>
-    </header>
+    </nav>
 
-    <!-- ═══════════════════ TABS ═══════════════════ -->
-    <div class="bg-surface border-b border-border px-6 flex gap-0 flex-shrink-0">
-        <button data-tab="review" class="tab-btn tab-active px-5 py-3 text-sm font-semibold border-b-2 border-transparent transition hover:text-primary">
-            <i class="fa-solid fa-magnifying-glass mr-1.5"></i>Code Review
+    <!-- ═══════════════════ TAB BAR ═══════════════════ -->
+    <div class="tab-bar">
+        <button data-tab="review" class="tab-btn tab-active">
+            <i class="fa-solid fa-magnifying-glass"></i> Code Review
         </button>
-        <button data-tab="rewrite" class="tab-btn px-5 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent transition hover:text-primary">
-            <i class="fa-solid fa-pen-to-square mr-1.5"></i>Rewrite Code
+        <button data-tab="rewrite" class="tab-btn">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite Code
         </button>
-        <button data-tab="howItWorks" class="tab-btn px-5 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent transition hover:text-primary">
-            <i class="fa-solid fa-circle-info mr-1.5"></i>How It Works
+        <button data-tab="howItWorks" class="tab-btn">
+            <i class="fa-solid fa-circle-info"></i> How It Works
         </button>
     </div>
 
     <!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
-    <div class="flex-1 overflow-hidden flex">
+    <div style="flex:1; overflow:hidden; display:flex; position:relative; z-index:10;">
 
-        <!-- ─── TAB: CODE REVIEW ──────────────────────── -->
-        <div id="tab-review" class="tab-content flex-1 flex overflow-hidden">
+        <!-- ─────────── TAB: CODE REVIEW ─────────── -->
+        <div id="tab-review" class="tab-content" style="flex:1; display:flex; overflow:hidden;">
 
             <!-- LEFT PANEL -->
-            <div class="w-[420px] min-w-[360px] bg-surface border-r border-border flex flex-col flex-shrink-0 overflow-y-auto">
-                <div class="p-5 space-y-5">
+            <div style="width:440px; min-width:380px; display:flex; flex-direction:column; flex-shrink:0; border-right:1px solid var(--border); background:var(--bg-secondary); overflow-y:auto;">
+                <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
 
                     <!-- Language -->
                     <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                            <i class="fa-solid fa-globe mr-1"></i>Language
-                        </label>
-                        <select id="langSelect" class="w-full bg-dark border border-border text-gray-200 text-sm rounded-lg px-3 py-2.5 outline-none focus:border-primary transition">
+                        <div class="section-label"><i class="fa-solid fa-code"></i> Language</div>
+                        <select id="langSelect" class="select-modern" style="width:100%;">
                             <option value="python">Python</option>
                             <option value="javascript">JavaScript</option>
                             <option value="typescript">TypeScript</option>
@@ -127,106 +751,87 @@
                         </select>
                     </div>
 
-                    <!-- Code textarea -->
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                            <i class="fa-solid fa-file-code mr-1"></i>Your Code
-                        </label>
-                        <textarea id="codeInput" rows="14" spellcheck="false" placeholder="Paste your code here…"
-                            class="w-full bg-dark border border-border text-gray-200 font-mono text-[13px] leading-relaxed rounded-lg px-4 py-3 outline-none focus:border-primary transition resize-none"></textarea>
+                    <!-- Code Editor -->
+                    <div style="display:flex; flex-direction:column;">
+                        <div class="section-label"><i class="fa-solid fa-file-code"></i> Your Code</div>
+                        <div id="codeEditorWrap" class="editor-wrapper" style="height:300px;">
+                            <div id="codeEditorContainer" style="width:100%; height:100%;">
+                                <div class="editor-loading"><i class="fa-solid fa-spinner"></i> Loading editor…</div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Focus Areas -->
                     <div>
-                        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                            <i class="fa-solid fa-crosshairs mr-1"></i>Focus Areas
-                        </label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
-                                <input type="checkbox" value="security" checked class="accent-primary rounded"> Security
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
-                                <input type="checkbox" value="performance" checked class="accent-primary rounded"> Performance
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
-                                <input type="checkbox" value="readability" checked class="accent-primary rounded"> Readability
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
-                                <input type="checkbox" value="best_practices" checked class="accent-primary rounded"> Best Practices
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
-                                <input type="checkbox" value="error_handling" class="accent-primary rounded"> Error Handling
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white transition">
-                                <input type="checkbox" value="documentation" class="accent-primary rounded"> Documentation
-                            </label>
+                        <div class="section-label"><i class="fa-solid fa-crosshairs"></i> Focus Areas</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <button class="focus-chip selected" data-value="security">
+                                <span class="chip-icon"><i class="fa-solid fa-shield-halved"></i></span> Security
+                            </button>
+                            <button class="focus-chip selected" data-value="performance">
+                                <span class="chip-icon"><i class="fa-solid fa-gauge-high"></i></span> Performance
+                            </button>
+                            <button class="focus-chip selected" data-value="readability">
+                                <span class="chip-icon"><i class="fa-solid fa-book-open"></i></span> Readability
+                            </button>
+                            <button class="focus-chip selected" data-value="best_practices">
+                                <span class="chip-icon"><i class="fa-solid fa-star"></i></span> Best Practices
+                            </button>
+                            <button class="focus-chip" data-value="error_handling">
+                                <span class="chip-icon"><i class="fa-solid fa-bug"></i></span> Error Handling
+                            </button>
+                            <button class="focus-chip" data-value="documentation">
+                                <span class="chip-icon"><i class="fa-solid fa-file-lines"></i></span> Documentation
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Buttons -->
-                    <div class="flex gap-3">
-                        <button id="reviewBtn"
-                            class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary-h text-white font-semibold text-sm transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed">
+                    <!-- Action Buttons -->
+                    <div style="display:flex; gap:10px;">
+                        <button id="reviewBtn" class="btn btn-primary" style="flex:1;">
                             <i class="fa-solid fa-magnifying-glass"></i> Review
                         </button>
-                        <button id="rewriteFromReviewBtn"
-                            class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="fa-solid fa-pen-to-square"></i> Rewrite
+                        <button id="rewriteFromReviewBtn" class="btn btn-success" style="flex:1;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- RIGHT PANEL — Review Results -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-                <!-- Severity counters -->
-                <div id="severityBar" class="hidden bg-surface border-b border-border px-5 py-3 flex-shrink-0">
-                    <div class="flex items-center gap-4">
-                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Issues Found</span>
-                        <span id="countCritical" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">
-                            <i class="fa-solid fa-circle-xmark"></i> Critical: <b>0</b>
-                        </span>
-                        <span id="countHigh" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">
-                            <i class="fa-solid fa-triangle-exclamation"></i> High: <b>0</b>
-                        </span>
-                        <span id="countMedium" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
-                            <i class="fa-solid fa-circle-exclamation"></i> Medium: <b>0</b>
-                        </span>
-                        <span id="countLow" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">
-                            <i class="fa-solid fa-circle-info"></i> Low: <b>0</b>
-                        </span>
-                    </div>
+            <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+                <!-- Severity Bar -->
+                <div id="severityBar" class="controls-bar hidden" style="gap:12px; flex-wrap:wrap;">
+                    <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-right:4px;">Issues Found</span>
+                    <span id="countCritical" class="severity-badge severity-critical"><i class="fa-solid fa-circle-xmark"></i> Critical: <b>0</b></span>
+                    <span id="countHigh" class="severity-badge severity-high"><i class="fa-solid fa-triangle-exclamation"></i> High: <b>0</b></span>
+                    <span id="countMedium" class="severity-badge severity-medium"><i class="fa-solid fa-circle-exclamation"></i> Medium: <b>0</b></span>
+                    <span id="countLow" class="severity-badge severity-low"><i class="fa-solid fa-circle-info"></i> Low: <b>0</b></span>
                 </div>
 
-                <!-- Result card -->
-                <div class="flex-1 overflow-y-auto p-5">
-                    <div id="reviewResult" class="bg-surface border border-border rounded-xl p-6 min-h-[200px] relative">
-                        <!-- Copy button -->
-                        <button id="copyReview" class="hidden absolute top-4 right-4 text-gray-500 hover:text-primary transition text-sm" title="Copy to clipboard">
+                <!-- Result Card -->
+                <div style="flex:1; overflow-y:auto; padding:20px;">
+                    <div id="reviewResult" class="result-card card-3d" style="padding:24px; min-height:200px; position:relative;">
+                        <button id="copyReview" class="copy-btn hidden" style="position:absolute; top:16px; right:16px;">
                             <i class="fa-regular fa-copy"></i> Copy
                         </button>
-                        <!-- Placeholder -->
-                        <div id="reviewPlaceholder" class="flex flex-col items-center justify-center text-gray-600 py-16">
-                            <i class="fa-solid fa-magnifying-glass-chart text-4xl mb-4 text-gray-700"></i>
-                            <p class="text-sm">Review results will appear here</p>
-                            <p class="text-xs mt-1 text-gray-700">Paste code, select focus areas, then click Review</p>
+                        <div id="reviewPlaceholder" class="empty-state">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                            <p>Review results will appear here</p>
+                            <p style="font-size:12px; margin-top:4px; opacity:0.6;">Paste code, select focus areas, then click <strong>Review</strong></p>
                         </div>
-                        <!-- Markdown output -->
-                        <div id="reviewOutput" class="hidden md-output text-sm leading-relaxed text-gray-300"></div>
+                        <div id="reviewOutput" class="hidden md-output" style="font-size:13.5px; line-height:1.7; color:var(--text-secondary);"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ─── TAB: REWRITE CODE ─────────────────────── -->
-        <div id="tab-rewrite" class="tab-content flex-1 hidden overflow-hidden flex flex-col">
-
-            <!-- Top controls -->
-            <div class="bg-surface border-b border-border px-5 py-3 flex items-center gap-4 flex-shrink-0">
-                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    <i class="fa-solid fa-globe mr-1"></i>Language
-                </label>
-                <select id="rewriteLangSelect" class="bg-dark border border-border text-gray-200 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-primary transition">
+        <!-- ─────────── TAB: REWRITE CODE ─────────── -->
+        <div id="tab-rewrite" class="tab-content" style="flex:1; display:none; flex-direction:column; overflow:hidden;">
+            <!-- Controls -->
+            <div class="controls-bar">
+                <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-code"></i> Language</div>
+                <select id="rewriteLangSelect" class="select-modern">
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript</option>
                     <option value="typescript">TypeScript</option>
@@ -237,107 +842,97 @@
                     <option value="go">Go</option>
                     <option value="rust">Rust</option>
                 </select>
-                <div class="flex-1"></div>
-                <button id="rewriteBtn"
-                    class="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary hover:bg-primary-h text-white font-semibold text-sm transition active:scale-[.97] disabled:opacity-50 disabled:cursor-not-allowed">
+                <div style="flex:1;"></div>
+                <button id="rewriteBtn" class="btn btn-primary">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite Code
                 </button>
             </div>
-
-            <!-- Side-by-side panels -->
-            <div class="flex-1 flex overflow-hidden">
+            <!-- Side-by-side -->
+            <div style="flex:1; display:flex; overflow:hidden;">
                 <!-- Original -->
-                <div class="flex-1 flex flex-col border-r border-border">
-                    <div class="bg-surface-2 px-5 py-2 flex items-center justify-between border-b border-border">
-                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-file-lines mr-1"></i>Original Code</span>
-                    </div>
-                    <div class="flex-1 overflow-hidden">
-                        <textarea id="rewriteInput" rows="20" spellcheck="false" placeholder="Paste your code here…"
-                            class="w-full h-full bg-dark text-gray-200 font-mono text-[13px] leading-relaxed px-5 py-4 outline-none resize-none border-none"></textarea>
+                <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid var(--border);">
+                    <div class="panel-header"><span class="panel-header-label"><i class="fa-solid fa-file-lines"></i> Original Code</span></div>
+                    <div style="flex:1; position:relative;">
+                        <div id="rewriteInputContainer" style="height:100%;">
+                            <div class="editor-loading"><i class="fa-solid fa-spinner"></i> Loading editor…</div>
+                        </div>
                     </div>
                 </div>
                 <!-- Rewritten -->
-                <div class="flex-1 flex flex-col">
-                    <div class="bg-surface-2 px-5 py-2 flex items-center justify-between border-b border-border">
-                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Rewritten Code</span>
-                        <button id="copyRewritten" class="hidden text-gray-500 hover:text-primary transition text-xs" title="Copy rewritten code">
-                            <i class="fa-regular fa-copy mr-1"></i>Copy
-                        </button>
+                <div style="flex:1; display:flex; flex-direction:column;">
+                    <div class="panel-header">
+                        <span class="panel-header-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Rewritten Code</span>
+                        <button id="copyRewritten" class="copy-btn hidden"><i class="fa-regular fa-copy"></i> Copy</button>
                     </div>
-                    <div class="flex-1 overflow-y-auto">
-                        <!-- Placeholder -->
-                        <div id="rewritePlaceholder" class="flex flex-col items-center justify-center text-gray-600 py-20">
-                            <i class="fa-solid fa-wand-magic-sparkles text-4xl mb-4 text-gray-700"></i>
-                            <p class="text-sm">Rewritten code will appear here</p>
+                    <div style="flex:1; overflow-y:auto;">
+                        <div id="rewritePlaceholder" class="empty-state" style="height:100%;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <p>Rewritten code will appear here</p>
                         </div>
-                        <!-- Code output -->
-                        <pre id="rewriteOutput" class="hidden"><code id="rewriteCode" class="font-mono text-[13px] leading-relaxed p-5"></code></pre>
-                        <!-- Improvements list -->
-                        <div id="improvementsSection" class="hidden border-t border-border px-5 py-4">
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                                <i class="fa-solid fa-check-double mr-1 text-emerald-400"></i>Improvements Made
-                            </h4>
-                            <ul id="improvementsList" class="space-y-1 text-sm text-gray-300"></ul>
+                        <div id="rewriteOutputContainer" class="hidden" style="height:100%; min-height:300px;"></div>
+                        <!-- Improvements -->
+                        <div id="improvementsSection" class="hidden" style="border-top:1px solid var(--border); padding:16px 20px;">
+                            <div class="section-label" style="margin-bottom:10px;">
+                                <i class="fa-solid fa-check-double" style="color:var(--success);"></i> Improvements Made
+                            </div>
+                            <div id="improvementsList"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ─── TAB: HOW IT WORKS ─────────────────────── -->
-        <div id="tab-howItWorks" class="tab-content flex-1 hidden overflow-y-auto">
-            <div class="max-w-3xl mx-auto py-12 px-6 space-y-10">
-
-                <div class="text-center">
-                    <i class="fa-solid fa-microchip text-primary text-5xl mb-4"></i>
-                    <h2 class="text-2xl font-bold mb-2">How It Works</h2>
-                    <p class="text-gray-500 text-sm max-w-lg mx-auto">This agent uses Google's Gemini 2.5 Flash model to review and rewrite your code in seconds.</p>
+        <!-- ─────────── TAB: HOW IT WORKS ─────────── -->
+        <div id="tab-howItWorks" class="tab-content" style="flex:1; display:none; overflow-y:auto;">
+            <div style="max-width:760px; margin:0 auto; padding:48px 24px;">
+                <!-- Hero -->
+                <div style="text-align:center; margin-bottom:40px;">
+                    <div style="width:72px; height:72px; border-radius:20px; background:linear-gradient(135deg, var(--accent), var(--accent-hover)); display:inline-flex; align-items:center; justify-content:center; font-size:28px; color:white; margin-bottom:20px; box-shadow:0 4px 20px var(--accent-glow);">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <h2 style="font-size:26px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px;">How It Works</h2>
+                    <p style="font-size:14px; color:var(--text-secondary); max-width:500px; margin:0 auto; line-height:1.6;">
+                        This agent uses Google's <strong style="color:var(--text-primary);">Gemini 2.5 Flash</strong> model to review and rewrite your code in seconds.
+                    </p>
                 </div>
-
                 <!-- Steps -->
-                <div class="grid gap-6 sm:grid-cols-3">
-                    <div class="bg-surface border border-border rounded-xl p-6 text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/15 flex items-center justify-center">
-                            <i class="fa-solid fa-paste text-primary text-lg"></i>
-                        </div>
-                        <h3 class="font-semibold mb-1">1. Paste Code</h3>
-                        <p class="text-xs text-gray-500">Paste your source code and select the programming language.</p>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:32px;">
+                    <div class="step-card">
+                        <div class="step-icon" style="background:var(--accent-subtle); color:var(--accent);"><i class="fa-solid fa-paste"></i></div>
+                        <h3 style="font-size:15px; font-weight:700; margin-bottom:6px;">1. Paste Code</h3>
+                        <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">Paste your source code and select the programming language.</p>
                     </div>
-                    <div class="bg-surface border border-border rounded-xl p-6 text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                            <i class="fa-solid fa-brain text-emerald-400 text-lg"></i>
-                        </div>
-                        <h3 class="font-semibold mb-1">2. AI Analysis</h3>
-                        <p class="text-xs text-gray-500">Gemini 2.5 Flash analyses your code for bugs, security issues, and improvements.</p>
+                    <div class="step-card">
+                        <div class="step-icon" style="background:var(--success-subtle); color:var(--success);"><i class="fa-solid fa-brain"></i></div>
+                        <h3 style="font-size:15px; font-weight:700; margin-bottom:6px;">2. AI Analysis</h3>
+                        <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">Gemini 2.5 Flash analyses your code for bugs, security issues, and more.</p>
                     </div>
-                    <div class="bg-surface border border-border rounded-xl p-6 text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-orange-500/15 flex items-center justify-center">
-                            <i class="fa-solid fa-rocket text-orange-400 text-lg"></i>
-                        </div>
-                        <h3 class="font-semibold mb-1">3. Get Results</h3>
-                        <p class="text-xs text-gray-500">Receive detailed review or production-ready rewritten code instantly.</p>
+                    <div class="step-card">
+                        <div class="step-icon" style="background:rgba(255,166,87,0.12); color:#ffa657;"><i class="fa-solid fa-rocket"></i></div>
+                        <h3 style="font-size:15px; font-weight:700; margin-bottom:6px;">3. Get Results</h3>
+                        <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5;">Receive detailed review or production-ready rewritten code instantly.</p>
                     </div>
                 </div>
-
                 <!-- Features -->
-                <div class="bg-surface border border-border rounded-xl p-6">
-                    <h3 class="font-semibold mb-4"><i class="fa-solid fa-bolt text-primary mr-2"></i>Features</h3>
-                    <div class="grid sm:grid-cols-2 gap-3 text-sm text-gray-400">
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Bug & vulnerability detection</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Production-grade code rewriting</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Performance optimisation tips</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Automatic docstrings & comments</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>16 programming languages</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Severity-ranked issue reports</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Side-by-side code comparison</div>
-                        <div class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5"></i>Copy to clipboard</div>
+                <div class="result-card" style="padding:24px; margin-bottom:32px;">
+                    <h3 style="font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-bolt" style="color:var(--accent);"></i> Features
+                    </h3>
+                    <div class="feature-grid">
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Bug &amp; vulnerability detection</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Production-grade code rewriting</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Performance optimisation tips</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Automatic docstrings &amp; comments</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> 16 programming languages</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Severity-ranked issue reports</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Side-by-side code comparison</div>
+                        <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Copy to clipboard</div>
                     </div>
                 </div>
-
                 <!-- Tech -->
-                <div class="text-center text-xs text-gray-600 space-y-1">
-                    <p>Powered by <strong class="text-gray-400">Google Gemini</strong> &times; <strong class="text-gray-400">Gemini 2.5 Flash</strong></p>
-                    <p>Built with FastAPI &middot; Tailwind CSS &middot; Highlight.js</p>
+                <div style="text-align:center; font-size:12px; color:var(--text-muted); line-height:1.8;">
+                    <p>Powered by <strong style="color:var(--text-secondary);">Google Gemini</strong> &times; <strong style="color:var(--text-secondary);">Gemini 2.5 Flash</strong></p>
+                    <p>Built with FastAPI &middot; Monaco Editor &middot; Modern CSS</p>
                 </div>
             </div>
         </div>
@@ -345,14 +940,10 @@
     </div>
 
     <!-- ═══════════════════ LOADING OVERLAY ═══════════════════ -->
-    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="bg-surface border border-border rounded-2xl px-8 py-6 flex flex-col items-center gap-4 shadow-2xl">
-            <div class="flex gap-2">
-                <span class="dot bg-primary"></span>
-                <span class="dot bg-primary"></span>
-                <span class="dot bg-primary"></span>
-            </div>
-            <p id="loadingText" class="text-sm text-gray-400">Analysing with Gemini 2.5 Flash…</p>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-card">
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+            <p id="loadingText" style="font-size:13px; color:var(--text-secondary);">Analysing with Gemini 2.5 Flash…</p>
         </div>
     </div>
 
@@ -361,7 +952,9 @@
     (function () {
         "use strict";
 
-        /* ── Auth guard ─────────────────────────────────── */
+        /* ═══════════════════════════════════════
+           AUTH GUARD
+        ═══════════════════════════════════════ */
         if (sessionStorage.getItem("authenticated") !== "true") {
             window.location.href = "/login";
         }
@@ -370,10 +963,52 @@
             window.location.href = "/login";
         });
 
-        /* ── Constants ──────────────────────────────────── */
+        /* ═══════════════════════════════════════
+           CONSTANTS
+        ═══════════════════════════════════════ */
         const API = window.location.origin;
 
-        /* ── Marked config ──────────────────────────────── */
+        /* ═══════════════════════════════════════
+           THEME MANAGEMENT
+        ═══════════════════════════════════════ */
+        const html = document.documentElement;
+        const body = document.body;
+        const themeToggle = document.getElementById("themeToggle");
+        const hljsDark = document.getElementById("hljs-dark");
+        const hljsLight = document.getElementById("hljs-light");
+
+        const savedTheme = localStorage.getItem("app-theme") || "dark";
+        html.setAttribute("data-theme", savedTheme);
+        applyHljsTheme(savedTheme);
+
+        themeToggle.addEventListener("click", () => {
+            const current = html.getAttribute("data-theme");
+            const next = current === "dark" ? "light" : "dark";
+
+            // Enable smooth transition class temporarily
+            body.classList.add("theme-transitioning");
+            html.setAttribute("data-theme", next);
+            localStorage.setItem("app-theme", next);
+            applyHljsTheme(next);
+            applyMonacoTheme(next);
+
+            setTimeout(() => body.classList.remove("theme-transitioning"), 400);
+        });
+
+        function applyHljsTheme(theme) {
+            hljsDark.disabled  = theme !== "dark";
+            hljsLight.disabled = theme !== "light";
+        }
+
+        function applyMonacoTheme(theme) {
+            if (typeof monaco !== "undefined") {
+                monaco.editor.setTheme(theme === "dark" ? "app-dark" : "app-light");
+            }
+        }
+
+        /* ═══════════════════════════════════════
+           MARKED CONFIG
+        ═══════════════════════════════════════ */
         marked.setOptions({
             highlight(code, lang) {
                 if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
@@ -382,84 +1017,331 @@
             breaks: true,
         });
 
-        /* ── Tab switching ──────────────────────────────── */
-        const tabBtns     = document.querySelectorAll(".tab-btn");
+        /* ═══════════════════════════════════════
+           TAB SWITCHING
+        ═══════════════════════════════════════ */
+        const tabBtns = document.querySelectorAll(".tab-btn");
         const tabContents = document.querySelectorAll(".tab-content");
 
         tabBtns.forEach(btn => {
             btn.addEventListener("click", () => {
-                tabBtns.forEach(b => { b.classList.remove("tab-active"); b.classList.add("text-gray-500"); });
-                btn.classList.add("tab-active"); btn.classList.remove("text-gray-500");
-                tabContents.forEach(c => c.classList.add("hidden"));
-                document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+                tabBtns.forEach(b => b.classList.remove("tab-active"));
+                btn.classList.add("tab-active");
+                tabContents.forEach(c => { c.style.display = "none"; });
+                const target = document.getElementById("tab-" + btn.dataset.tab);
+                target.style.display = "flex";
+                // Layout Monaco editors in the newly visible tab
+                requestAnimationFrame(() => {
+                    if (btn.dataset.tab === "review" && codeEditor) codeEditor.layout();
+                    if (btn.dataset.tab === "rewrite") {
+                        if (rewriteInputEditor) rewriteInputEditor.layout();
+                        if (rewriteOutputEditor) rewriteOutputEditor.layout();
+                    }
+                    if (btn.dataset.tab === "howItWorks") {
+                        target.style.display = "block";
+                        target.style.overflowY = "auto";
+                    }
+                });
             });
         });
 
-        /* ── Loading overlay helpers ────────────────────── */
-        const overlay     = document.getElementById("loadingOverlay");
-        const loadingText = document.getElementById("loadingText");
-        function showLoading(msg) { loadingText.textContent = msg; overlay.classList.remove("hidden"); }
-        function hideLoading() { overlay.classList.add("hidden"); }
+        /* ═══════════════════════════════════════
+           FOCUS AREA CHIPS
+        ═══════════════════════════════════════ */
+        document.querySelectorAll(".focus-chip").forEach(chip => {
+            chip.addEventListener("click", () => chip.classList.toggle("selected"));
+        });
 
-        /* ── Clipboard helper ───────────────────────────── */
+        /* ═══════════════════════════════════════
+           LOADING HELPERS
+        ═══════════════════════════════════════ */
+        const overlay = document.getElementById("loadingOverlay");
+        const loadingText = document.getElementById("loadingText");
+        function showLoading(msg) { loadingText.textContent = msg; overlay.classList.add("active"); }
+        function hideLoading() { overlay.classList.remove("active"); }
+
+        /* ═══════════════════════════════════════
+           CLIPBOARD HELPER
+        ═══════════════════════════════════════ */
         function copyText(text, btn) {
             navigator.clipboard.writeText(text).then(() => {
                 const prev = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Copied!';
-                btn.classList.add("text-emerald-400");
-                setTimeout(() => { btn.innerHTML = prev; btn.classList.remove("text-emerald-400"); }, 1500);
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                const origColor = btn.style.color;
+                const origBorder = btn.style.borderColor;
+                btn.style.color = "var(--success)";
+                btn.style.borderColor = "var(--success)";
+                setTimeout(() => {
+                    btn.innerHTML = prev;
+                    btn.style.color = origColor;
+                    btn.style.borderColor = origBorder;
+                }, 1500);
             });
         }
 
-        /* ═══════════════════════════════════════════════════
-           CODE REVIEW TAB
-        ═══════════════════════════════════════════════════ */
-        const reviewBtn       = document.getElementById("reviewBtn");
-        const codeInput       = document.getElementById("codeInput");
-        const langSelect      = document.getElementById("langSelect");
-        const severityBar     = document.getElementById("severityBar");
-        const reviewPlaceholder = document.getElementById("reviewPlaceholder");
-        const reviewOutput    = document.getElementById("reviewOutput");
-        const copyReview      = document.getElementById("copyReview");
+        /* ═══════════════════════════════════════
+           MONACO EDITOR SETUP
+        ═══════════════════════════════════════ */
+        let codeEditor = null;
+        let rewriteInputEditor = null;
+        let rewriteOutputEditor = null;
 
-        reviewBtn.addEventListener("click", () => runReview());
+        const MONACO_CDN = "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min";
+
+        require.config({ paths: { vs: MONACO_CDN + "/vs" } });
+
+        window.MonacoEnvironment = {
+            getWorker: function (workerId, label) {
+                const workerUrl = MONACO_CDN + "/vs/base/worker/workerMain.js";
+                const proxyCode = [
+                    'self.MonacoEnvironment = { baseUrl: "' + MONACO_CDN + '/" };',
+                    'importScripts("' + workerUrl + '");'
+                ].join("\n");
+                const blob = new Blob([proxyCode], { type: "text/javascript" });
+                return new Worker(URL.createObjectURL(blob));
+            }
+        };
+
+        // Fallback: if Monaco doesn't load in 8s, show textareas
+        let monacoLoaded = false;
+        setTimeout(function () {
+            if (!monacoLoaded) {
+                console.warn("Monaco timed out — falling back to textareas");
+                initFallbackTextareas();
+            }
+        }, 8000);
+
+        function initFallbackTextareas() {
+            const style = "width:100%;height:100%;background:var(--bg-primary);color:var(--text-primary);border:none;outline:none;resize:none;padding:14px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.6;display:block;";
+            ["codeEditorContainer","rewriteInputContainer"].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el && !el.querySelector(".monaco-editor")) {
+                    el.innerHTML = '<textarea id="' + id + '_ta" style="' + style + '" placeholder="Paste your code here…" spellcheck="false"></textarea>';
+                }
+            });
+            var ro = document.getElementById("rewriteOutputContainer");
+            if (ro && !ro.querySelector(".monaco-editor")) {
+                ro.innerHTML = '<pre id="rewriteOutputContainer_pre" style="' + style + 'overflow:auto;white-space:pre;"></pre>';
+            }
+        }
+
+        require(["vs/editor/editor.main"], function () {
+            monacoLoaded = true;
+
+            // Clear the "Loading editor..." placeholders
+            ["codeEditorContainer","rewriteInputContainer","rewriteOutputContainer"].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    var loader = el.querySelector(".editor-loading");
+                    if (loader) loader.remove();
+                }
+            });
+
+            /* ── Define Custom Themes ── */
+            monaco.editor.defineTheme("app-dark", {
+                base: "vs-dark",
+                inherit: true,
+                rules: [
+                    { token: "comment",   foreground: "6a737d", fontStyle: "italic" },
+                    { token: "keyword",   foreground: "ff7b72" },
+                    { token: "string",    foreground: "a5d6ff" },
+                    { token: "number",    foreground: "79c0ff" },
+                    { token: "type",      foreground: "ffa657" },
+                    { token: "function",  foreground: "d2a8ff" },
+                    { token: "variable",  foreground: "ffa657" },
+                    { token: "operator",  foreground: "ff7b72" },
+                    { token: "delimiter", foreground: "8b949e" },
+                ],
+                colors: {
+                    "editor.background":                  "#0d1117",
+                    "editor.foreground":                  "#e6edf3",
+                    "editor.lineHighlightBackground":     "#161b2260",
+                    "editor.selectionBackground":         "#264f7840",
+                    "editorCursor.foreground":            "#6366f1",
+                    "editor.selectionHighlightBackground":"#3fb95020",
+                    "editorLineNumber.foreground":        "#484f58",
+                    "editorLineNumber.activeForeground":  "#8b949e",
+                    "editorIndentGuide.background":       "#21262d",
+                    "editorIndentGuide.activeBackground": "#30363d",
+                    "editorBracketMatch.background":      "#6366f120",
+                    "editorBracketMatch.border":          "#6366f140",
+                    "scrollbar.shadow":                   "#00000000",
+                    "editorOverviewRuler.border":         "#00000000",
+                }
+            });
+
+            monaco.editor.defineTheme("app-light", {
+                base: "vs",
+                inherit: true,
+                rules: [
+                    { token: "comment",   foreground: "6a737d", fontStyle: "italic" },
+                    { token: "keyword",   foreground: "cf222e" },
+                    { token: "string",    foreground: "0a3069" },
+                    { token: "number",    foreground: "0550ae" },
+                    { token: "type",      foreground: "953800" },
+                    { token: "function",  foreground: "8250df" },
+                    { token: "variable",  foreground: "953800" },
+                    { token: "operator",  foreground: "cf222e" },
+                    { token: "delimiter", foreground: "656d76" },
+                ],
+                colors: {
+                    "editor.background":                  "#ffffff",
+                    "editor.foreground":                  "#1f2328",
+                    "editor.lineHighlightBackground":     "#f6f8fa",
+                    "editor.selectionBackground":         "#0969da20",
+                    "editorCursor.foreground":            "#4f46e5",
+                    "editor.selectionHighlightBackground":"#1a7f3715",
+                    "editorLineNumber.foreground":        "#8b949e",
+                    "editorLineNumber.activeForeground":  "#1f2328",
+                    "editorIndentGuide.background":       "#d0d7de80",
+                    "editorIndentGuide.activeBackground": "#d0d7de",
+                    "editorBracketMatch.background":      "#4f46e515",
+                    "editorBracketMatch.border":          "#4f46e530",
+                    "scrollbar.shadow":                   "#00000000",
+                    "editorOverviewRuler.border":         "#00000000",
+                }
+            });
+
+            const currentTheme = html.getAttribute("data-theme") === "dark" ? "app-dark" : "app-light";
+
+            const sharedOpts = {
+                fontSize: 14,
+                fontFamily: "'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace",
+                fontLigatures: true,
+                lineNumbers: "on",
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                smoothScrolling: true,
+                cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
+                renderLineHighlight: "line",
+                bracketPairColorization: { enabled: true },
+                guides: { bracketPairs: true, indentation: true },
+                folding: true,
+                automaticLayout: true,
+                padding: { top: 12, bottom: 12 },
+                roundedSelection: true,
+                scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8 },
+                overviewRulerLanes: 0,
+                hideCursorInOverviewRuler: true,
+                overviewRulerBorder: false,
+                contextmenu: true,
+                wordWrap: "off",
+                tabSize: 4,
+                insertSpaces: true,
+            };
+
+            // ── Review Tab Editor ──
+            codeEditor = monaco.editor.create(document.getElementById("codeEditorContainer"), {
+                ...sharedOpts, value: "", language: "python", theme: currentTheme,
+            });
+
+            // ── Rewrite Input Editor ──
+            rewriteInputEditor = monaco.editor.create(document.getElementById("rewriteInputContainer"), {
+                ...sharedOpts, value: "", language: "python", theme: currentTheme,
+            });
+
+            // ── Rewrite Output Editor (read-only) ──
+            rewriteOutputEditor = monaco.editor.create(document.getElementById("rewriteOutputContainer"), {
+                ...sharedOpts, value: "", language: "python", theme: currentTheme,
+                readOnly: true, domReadOnly: true,
+            });
+
+            // Activate glow on focus
+            codeEditor.onDidFocusEditorText(() => document.getElementById("codeEditorWrap").classList.add("active"));
+            codeEditor.onDidBlurEditorText(() => document.getElementById("codeEditorWrap").classList.remove("active"));
+
+            // ── Sync language dropdown ──
+            document.getElementById("langSelect").addEventListener("change", function () {
+                monaco.editor.setModelLanguage(codeEditor.getModel(), this.value);
+            });
+            document.getElementById("rewriteLangSelect").addEventListener("change", function () {
+                monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), this.value);
+                monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), this.value);
+            });
+
+            // ── Responsive layout ──
+            window.addEventListener("resize", () => {
+                codeEditor && codeEditor.layout();
+                rewriteInputEditor && rewriteInputEditor.layout();
+                rewriteOutputEditor && rewriteOutputEditor.layout();
+            });
+
+            // Force layout multiple times to ensure proper rendering
+            function forceAllLayouts() {
+                if (codeEditor) codeEditor.layout();
+                if (rewriteInputEditor) rewriteInputEditor.layout();
+                if (rewriteOutputEditor) rewriteOutputEditor.layout();
+            }
+            requestAnimationFrame(forceAllLayouts);
+            setTimeout(forceAllLayouts, 100);
+            setTimeout(forceAllLayouts, 500);
+        }, function (err) {
+            // Monaco failed to load — fall back to textareas
+            console.error("Monaco require() failed:", err);
+            monacoLoaded = false;
+            initFallbackTextareas();
+        });
+
+        /* ═══════════════════════════════════════
+           CODE REVIEW
+        ═══════════════════════════════════════ */
+        const reviewBtn = document.getElementById("reviewBtn");
+        const langSelect = document.getElementById("langSelect");
+        const severityBar = document.getElementById("severityBar");
+        const reviewPlaceholder = document.getElementById("reviewPlaceholder");
+        const reviewOutput = document.getElementById("reviewOutput");
+        const copyReview = document.getElementById("copyReview");
+
+        reviewBtn.addEventListener("click", runReview);
+
+        // Helper: get code from Monaco or fallback textarea
+        function getEditorValue(editor, fallbackId) {
+            if (editor) try { return editor.getValue(); } catch(e) {}
+            var ta = document.getElementById(fallbackId + "_ta");
+            return ta ? ta.value : "";
+        }
+        function setEditorValue(editor, fallbackId, val) {
+            if (editor) try { editor.setValue(val); return; } catch(e) {}
+            var ta = document.getElementById(fallbackId + "_ta");
+            if (ta) ta.value = val;
+            var pre = document.getElementById(fallbackId + "_pre");
+            if (pre) pre.textContent = val;
+        }
 
         async function runReview() {
-            const code = codeInput.value.trim();
+            const code = getEditorValue(codeEditor, "codeEditorContainer").trim();
             if (!code) { alert("Please paste some code first."); return; }
 
-            // Gather focus areas
-            const areas = [...document.querySelectorAll('#tab-review input[type="checkbox"]:checked')].map(c => c.value);
+            const areas = [...document.querySelectorAll(".focus-chip.selected")].map(c => c.dataset.value);
             const extra = areas.length ? "Focus on: " + areas.join(", ") : null;
 
             reviewBtn.disabled = true;
             showLoading("Reviewing code with Gemini 2.5 Flash…");
 
             try {
-                const res = await fetch(`${API}/review`, {
+                const res = await fetch(API + "/review", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code, language: langSelect.value, instructions: extra }),
+                    body: JSON.stringify({ code: code, language: langSelect.value, instructions: extra }),
                 });
-                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+                if (!res.ok) {
+                    const e = await res.json().catch(() => ({}));
+                    throw new Error(e.detail || "HTTP " + res.status);
+                }
                 const data = await res.json();
                 const md = data.result || "No output.";
 
-                // Render markdown
                 reviewPlaceholder.classList.add("hidden");
                 reviewOutput.classList.remove("hidden");
                 reviewOutput.innerHTML = marked.parse(md);
                 reviewOutput.querySelectorAll("pre code").forEach(b => hljs.highlightElement(b));
-
-                // Count severities
                 countSeverities(md);
-
-                // Show copy button
                 copyReview.classList.remove("hidden");
             } catch (err) {
                 reviewOutput.classList.remove("hidden");
                 reviewPlaceholder.classList.add("hidden");
-                reviewOutput.innerHTML = `<p class="text-red-400"><i class="fa-solid fa-circle-xmark mr-1"></i>${err.message}</p>`;
+                reviewOutput.innerHTML = '<p style="color:var(--error);"><i class="fa-solid fa-circle-xmark" style="margin-right:6px;"></i>' + err.message + '</p>';
             } finally {
                 reviewBtn.disabled = false;
                 hideLoading();
@@ -467,126 +1349,130 @@
         }
 
         function countSeverities(md) {
-            // Try to parse the structured summary line: "Critical: X | High: X | Medium: X | Low: X"
-            let critical = 0, high = 0, medium = 0, low = 0;
-            const summaryMatch = md.match(/Critical:\s*(\d+)\s*\|\s*High:\s*(\d+)\s*\|\s*Medium:\s*(\d+)\s*\|\s*Low:\s*(\d+)/i);
-            if (summaryMatch) {
-                critical = parseInt(summaryMatch[1], 10);
-                high     = parseInt(summaryMatch[2], 10);
-                medium   = parseInt(summaryMatch[3], 10);
-                low      = parseInt(summaryMatch[4], 10);
+            let c = 0, h = 0, m = 0, l = 0;
+            const match = md.match(/Critical:\s*(\d+)\s*\|\s*High:\s*(\d+)\s*\|\s*Medium:\s*(\d+)\s*\|\s*Low:\s*(\d+)/i);
+            if (match) {
+                c = parseInt(match[1], 10); h = parseInt(match[2], 10);
+                m = parseInt(match[3], 10); l = parseInt(match[4], 10);
             } else {
-                // Fallback: count severity headings (## Critical Issues, ## High Issues, etc.)
-                critical = (md.match(/##.*Critical/gi) || []).length;
-                high     = (md.match(/##.*High/gi)     || []).length;
-                medium   = (md.match(/##.*Medium/gi)   || []).length;
-                low      = (md.match(/##.*Low/gi)      || []).length;
+                c = (md.match(/##.*Critical/gi) || []).length;
+                h = (md.match(/##.*High/gi) || []).length;
+                m = (md.match(/##.*Medium/gi) || []).length;
+                l = (md.match(/##.*Low/gi) || []).length;
             }
-
-            document.querySelector("#countCritical b").textContent = critical;
-            document.querySelector("#countHigh b").textContent     = high;
-            document.querySelector("#countMedium b").textContent   = medium;
-            document.querySelector("#countLow b").textContent      = low;
+            document.querySelector("#countCritical b").textContent = c;
+            document.querySelector("#countHigh b").textContent = h;
+            document.querySelector("#countMedium b").textContent = m;
+            document.querySelector("#countLow b").textContent = l;
             severityBar.classList.remove("hidden");
         }
 
         copyReview.addEventListener("click", () => copyText(reviewOutput.innerText, copyReview));
 
-        /* ── Rewrite from Review tab ───────────────────── */
-        const rewriteFromReviewBtn = document.getElementById("rewriteFromReviewBtn");
-        rewriteFromReviewBtn.addEventListener("click", () => {
-            const code = codeInput.value.trim();
+        /* ═══════════════════════════════════════
+           REWRITE FROM REVIEW TAB
+        ═══════════════════════════════════════ */
+        document.getElementById("rewriteFromReviewBtn").addEventListener("click", () => {
+            const code = getEditorValue(codeEditor, "codeEditorContainer").trim();
             if (!code) { alert("Please paste some code first."); return; }
-            // Copy code to rewrite tab and switch
-            document.getElementById("rewriteInput").value = code;
+            setEditorValue(rewriteInputEditor, "rewriteInputContainer", code);
             document.getElementById("rewriteLangSelect").value = langSelect.value;
+            if (typeof monaco !== "undefined" && rewriteInputEditor) {
+                monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), langSelect.value);
+                monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), langSelect.value);
+            }
             document.querySelector('[data-tab="rewrite"]').click();
-            runRewrite();
+            setTimeout(runRewrite, 150);
         });
 
-        /* ═══════════════════════════════════════════════════
+        /* ═══════════════════════════════════════
            REWRITE TAB
-        ═══════════════════════════════════════════════════ */
-        const rewriteBtn         = document.getElementById("rewriteBtn");
-        const rewriteInput       = document.getElementById("rewriteInput");
-        const rewriteLangSelect  = document.getElementById("rewriteLangSelect");
+        ═══════════════════════════════════════ */
+        const rewriteBtn = document.getElementById("rewriteBtn");
+        const rewriteLangSelect = document.getElementById("rewriteLangSelect");
         const rewritePlaceholder = document.getElementById("rewritePlaceholder");
-        const rewriteOutput      = document.getElementById("rewriteOutput");
-        const rewriteCode        = document.getElementById("rewriteCode");
-        const copyRewritten      = document.getElementById("copyRewritten");
+        const rewriteOutputContainer = document.getElementById("rewriteOutputContainer");
+        const copyRewritten = document.getElementById("copyRewritten");
         const improvementsSection = document.getElementById("improvementsSection");
-        const improvementsList   = document.getElementById("improvementsList");
+        const improvementsList = document.getElementById("improvementsList");
 
-        rewriteBtn.addEventListener("click", () => runRewrite());
+        rewriteBtn.addEventListener("click", runRewrite);
 
         async function runRewrite() {
-            const code = rewriteInput.value.trim();
+            const code = getEditorValue(rewriteInputEditor, "rewriteInputContainer").trim();
             if (!code) { alert("Please paste some code first."); return; }
 
             rewriteBtn.disabled = true;
             showLoading("Rewriting code to production quality…");
 
             try {
-                const res = await fetch(`${API}/api/rewrite`, {
+                const res = await fetch(API + "/api/rewrite", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code, language: rewriteLangSelect.value }),
+                    body: JSON.stringify({ code: code, language: rewriteLangSelect.value }),
                 });
-                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+                if (!res.ok) {
+                    const e = await res.json().catch(() => ({}));
+                    throw new Error(e.detail || "HTTP " + res.status);
+                }
                 const data = await res.json();
 
-                // Show rewritten code
                 rewritePlaceholder.classList.add("hidden");
-                rewriteOutput.classList.remove("hidden");
-                rewriteCode.textContent = data.rewritten_code;
-                rewriteCode.className = `language-${rewriteLangSelect.value} font-mono text-[13px] leading-relaxed p-5`;
-                hljs.highlightElement(rewriteCode);
-
-                // Show improvements
-                if (data.improvements && data.improvements.length > 0) {
-                    improvementsSection.classList.remove("hidden");
-                    improvementsList.innerHTML = data.improvements
-                        .map(imp => {
-                            const safe = imp.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                            return `<li class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 text-xs"></i>${safe}</li>`;
-                        })
-                        .join("");
+                rewriteOutputContainer.classList.remove("hidden");
+                setEditorValue(rewriteOutputEditor, "rewriteOutputContainer", data.rewritten_code || "");
+                if (typeof monaco !== "undefined" && rewriteOutputEditor) {
+                    monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), rewriteLangSelect.value);
                 }
 
-                // Show copy
+                if (data.improvements && data.improvements.length > 0) {
+                    improvementsSection.classList.remove("hidden");
+                    improvementsList.innerHTML = data.improvements.map(imp => {
+                        const safe = imp.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        return '<div class="improvement-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:3px; font-size:11px; flex-shrink:0;"></i> ' + safe + '</div>';
+                    }).join("");
+                }
+
                 copyRewritten.classList.remove("hidden");
             } catch (err) {
                 rewritePlaceholder.classList.add("hidden");
-                rewriteOutput.classList.remove("hidden");
-                rewriteCode.textContent = `Error: ${err.message}`;
-                rewriteCode.className = "text-red-400 font-mono text-[13px] leading-relaxed p-5";
+                rewriteOutputContainer.classList.remove("hidden");
+                setEditorValue(rewriteOutputEditor, "rewriteOutputContainer", "Error: " + err.message);
             } finally {
                 rewriteBtn.disabled = false;
                 hideLoading();
             }
         }
 
-        copyRewritten.addEventListener("click", () => copyText(rewriteCode.textContent, copyRewritten));
-
-        /* ── Health check on load ───────────────────────── */
-        const badge = document.getElementById("apiBadge");
-        fetch(`${API}/`).then(r => r.json()).then(d => {
-            if (d.status === "API Connected") {
-                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> API Connected';
-            }
-        }).catch(() => {
-            badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span> API Offline';
-            badge.classList.remove("bg-emerald-500/15","text-emerald-400","border-emerald-500/30");
-            badge.classList.add("bg-red-500/15","text-red-400","border-red-500/30");
+        copyRewritten.addEventListener("click", () => {
+            const val = getEditorValue(rewriteOutputEditor, "rewriteOutputContainer");
+            copyText(val, copyRewritten);
         });
 
-        /* ── Keyboard shortcut: Ctrl+Enter ──────────────── */
+        /* ═══════════════════════════════════════
+           HEALTH CHECK
+        ═══════════════════════════════════════ */
+        const badge = document.getElementById("apiBadge");
+        fetch(API + "/").then(r => r.json()).then(d => {
+            if (d.status === "API Connected") {
+                badge.innerHTML = '<span class="pulse-dot"></span> API Connected';
+                badge.className = "api-badge connected";
+            }
+        }).catch(() => {
+            badge.innerHTML = '<span class="pulse-dot"></span> API Offline';
+            badge.className = "api-badge disconnected";
+        });
+
+        /* ═══════════════════════════════════════
+           KEYBOARD SHORTCUTS
+        ═══════════════════════════════════════ */
         document.addEventListener("keydown", (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                 e.preventDefault();
-                const activeTab = document.querySelector(".tab-btn.tab-active")?.dataset.tab;
-                if (activeTab === "review") reviewBtn.click();
-                else if (activeTab === "rewrite") rewriteBtn.click();
+                const activeTab = document.querySelector(".tab-btn.tab-active");
+                if (activeTab) {
+                    if (activeTab.dataset.tab === "review") reviewBtn.click();
+                    else if (activeTab.dataset.tab === "rewrite") rewriteBtn.click();
+                }
             }
         });
 
