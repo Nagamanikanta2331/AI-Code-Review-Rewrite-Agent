@@ -439,6 +439,7 @@
                 if (email === VALID_EMAIL && password === VALID_PASSWORD) {
                     sessionStorage.setItem("authenticated", "true");
                     sessionStorage.setItem("user", email);
+                    sessionStorage.setItem("firstLogin", "true");
                     window.location.href = "/app";
                 } else {
                     showError("Invalid email or password.");

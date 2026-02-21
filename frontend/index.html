@@ -905,13 +905,13 @@
 
     <!-- ═══════════════════ TAB BAR ═══════════════════ -->
     <div class="tab-bar">
-        <button data-tab="review" class="tab-btn tab-active">
+        <button data-tab="review" class="tab-btn">
             <i class="fa-solid fa-magnifying-glass"></i> Code Review
         </button>
         <button data-tab="rewrite" class="tab-btn">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite Code
         </button>
-        <button data-tab="howItWorks" class="tab-btn">
+        <button data-tab="howItWorks" class="tab-btn tab-active">
             <i class="fa-solid fa-circle-info"></i> How It Works
         </button>
         <button data-tab="chat" class="tab-btn">
@@ -923,7 +923,7 @@
     <div style="flex:1; overflow:hidden; display:flex; position:relative; z-index:10;">
 
         <!-- ─────────── TAB: CODE REVIEW ─────────── -->
-        <div id="tab-review" class="tab-content" style="flex:1; display:flex; overflow:hidden;">
+        <div id="tab-review" class="tab-content" style="flex:1; display:none; overflow:hidden;">
 
             <!-- LEFT PANEL -->
             <div style="width:440px; min-width:380px; display:flex; flex-direction:column; flex-shrink:0; border-right:1px solid var(--border); background:var(--bg-secondary); overflow-y:auto; min-height:0;">
@@ -1091,7 +1091,7 @@
         </div>
 
         <!-- ─────────── TAB: HOW IT WORKS ─────────── -->
-        <div id="tab-howItWorks" class="tab-content" style="flex:1; display:none; overflow-y:auto;">
+        <div id="tab-howItWorks" class="tab-content" style="flex:1; display:block; overflow-y:auto;">
             <div style="max-width:760px; margin:0 auto; padding:48px 24px;">
                 <!-- Hero -->
                 <div style="text-align:center; margin-bottom:40px;">
@@ -1137,6 +1137,27 @@
                         <div class="feature-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i> Copy to clipboard</div>
                     </div>
                 </div>
+                <!-- Get Started Button -->
+                <div style="text-align:center; margin-bottom:32px;">
+                    <button id="getStartedBtn" style="
+                        display:inline-flex; align-items:center; gap:10px;
+                        padding:14px 36px;
+                        border-radius:12px;
+                        border:none;
+                        background:linear-gradient(135deg, var(--accent), var(--accent-hover));
+                        color:white;
+                        font-size:16px;
+                        font-weight:700;
+                        font-family:'Inter', sans-serif;
+                        cursor:pointer;
+                        transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                        box-shadow:0 4px 20px var(--accent-glow);
+                        letter-spacing:-0.2px;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 30px var(--accent-glow)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 20px var(--accent-glow)';">
+                        <i class="fa-solid fa-rocket"></i> Get Started
+                    </button>
+                </div>
+
                 <!-- Tech -->
                 <div style="text-align:center; font-size:12px; color:var(--text-muted); line-height:1.8;">
                     <p>Powered by <strong style="color:var(--text-secondary);">Google Gemini</strong> &times; <strong style="color:var(--text-secondary);">Gemini 2.5 Flash</strong></p>
@@ -1333,6 +1354,13 @@
                     }
                 });
             });
+        });
+
+        /* ═══════════════════════════════════════
+           GET STARTED BUTTON
+        ═══════════════════════════════════════ */
+        document.getElementById("getStartedBtn").addEventListener("click", () => {
+            document.querySelector('[data-tab="review"]').click();
         });
 
         /* ═══════════════════════════════════════
