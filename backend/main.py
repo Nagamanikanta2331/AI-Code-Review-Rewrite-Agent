@@ -181,21 +181,14 @@ YOU MUST NOT:
 - Make the code significantly longer without strong reason.
 
 OUTPUT FORMAT:
+You MUST return a valid JSON object with exactly two keys:
+- "rewritten_code": a string containing the clean corrected code
+- "improvements": an array of strings, each a short bullet explaining an important fix (max 5)
 
-══════════════════════════════
-✅ Rewritten Code
-══════════════════════════════
-<clean corrected code here>
+Example:
+{"rewritten_code": "print('Hello, World!')", "improvements": ["No changes needed."]}
 
-══════════════════════════════
-🔎 What Was Improved
-══════════════════════════════
-- Short bullet explaining each important fix
-- Maximum 5 bullets
-- Keep each bullet under one sentence
-- No long explanations
-
-Be concise. Be clean. Be practical.
+Do NOT include markdown, code fences, or any text outside the JSON object.
 """
 
 # ───────────────────────────────────────────────────────────────
@@ -258,10 +251,13 @@ def _call_llm(system: str, user: str, json_mode: bool = False) -> tuple[str, Opt
 
 def extract_json(raw: str) -> dict:
     """Robust JSON extraction from LLM output with multi-strategy parsing."""
+    if not raw or not isinstance(raw, str):
+        raise ValueError("Empty or invalid response from model")
+
     # Strategy 1 — direct parse
     try:
         return json.loads(raw)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         pass
 
     # Strategy 2 — strip markdown code fences
@@ -352,8 +348,8 @@ async def rewrite_code(req: RewriteRequest):
 
     try:
         parsed = extract_json(content)
-    except ValueError:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Model returned invalid JSON. Please retry.")
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f"Model returned invalid response. Please retry. ({exc})")
 
     rewritten = parsed.get("rewritten_code", "")
     improvements = parsed.get("improvements", [])

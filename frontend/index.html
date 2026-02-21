@@ -17,6 +17,13 @@
     <link id="hljs-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
     <link id="hljs-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" disabled />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Additional highlight.js language packs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js"></script>
 
     <!-- Marked.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
@@ -110,6 +117,7 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -725,7 +733,7 @@
         <div id="tab-review" class="tab-content" style="flex:1; display:flex; overflow:hidden;">
 
             <!-- LEFT PANEL -->
-            <div style="width:440px; min-width:380px; display:flex; flex-direction:column; flex-shrink:0; border-right:1px solid var(--border); background:var(--bg-secondary); overflow-y:auto;">
+            <div style="width:440px; min-width:380px; display:flex; flex-direction:column; flex-shrink:0; border-right:1px solid var(--border); background:var(--bg-secondary); overflow-y:auto; min-height:0;">
                 <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
 
                     <!-- Language -->
@@ -799,9 +807,9 @@
             </div>
 
             <!-- RIGHT PANEL — Review Results -->
-            <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+            <div style="flex:1; display:flex; flex-direction:column; overflow:hidden; min-height:0;">
                 <!-- Severity Bar -->
-                <div id="severityBar" class="controls-bar hidden" style="gap:12px; flex-wrap:wrap;">
+                <div id="severityBar" class="controls-bar hidden" style="gap:12px; flex-wrap:wrap; flex-shrink:0;">
                     <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-right:4px;">Issues Found</span>
                     <span id="countCritical" class="severity-badge severity-critical"><i class="fa-solid fa-circle-xmark"></i> Critical: <b>0</b></span>
                     <span id="countHigh" class="severity-badge severity-high"><i class="fa-solid fa-triangle-exclamation"></i> High: <b>0</b></span>
@@ -810,7 +818,7 @@
                 </div>
 
                 <!-- Result Card -->
-                <div style="flex:1; overflow-y:auto; padding:20px;">
+                <div style="flex:1; overflow-y:auto; padding:20px; min-height:0;">
                     <div id="reviewResult" class="result-card card-3d" style="padding:24px; min-height:200px; position:relative;">
                         <button id="copyReview" class="copy-btn hidden" style="position:absolute; top:16px; right:16px;">
                             <i class="fa-regular fa-copy"></i> Copy
@@ -827,7 +835,7 @@
         </div>
 
         <!-- ─────────── TAB: REWRITE CODE ─────────── -->
-        <div id="tab-rewrite" class="tab-content" style="flex:1; display:none; flex-direction:column; overflow:hidden;">
+        <div id="tab-rewrite" class="tab-content" style="flex:1; display:none; flex-direction:column; overflow:hidden; min-height:0;">
             <!-- Controls -->
             <div class="controls-bar">
                 <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-code"></i> Language</div>
@@ -841,6 +849,13 @@
                     <option value="csharp">C#</option>
                     <option value="go">Go</option>
                     <option value="rust">Rust</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="php">PHP</option>
+                    <option value="swift">Swift</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="sql">SQL</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
                 </select>
                 <div style="flex:1;"></div>
                 <button id="rewriteBtn" class="btn btn-primary">
@@ -848,9 +863,9 @@
                 </button>
             </div>
             <!-- Side-by-side -->
-            <div style="flex:1; display:flex; overflow:hidden;">
+            <div style="flex:1; display:flex; overflow:hidden; min-height:0;">
                 <!-- Original -->
-                <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid var(--border);">
+                <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid var(--border); min-height:0;">
                     <div class="panel-header"><span class="panel-header-label"><i class="fa-solid fa-file-lines"></i> Original Code</span></div>
                     <div style="flex:1; position:relative;">
                         <div id="rewriteInputContainer" style="height:100%;">
@@ -859,12 +874,12 @@
                     </div>
                 </div>
                 <!-- Rewritten -->
-                <div style="flex:1; display:flex; flex-direction:column;">
+                <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
                     <div class="panel-header">
                         <span class="panel-header-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Rewritten Code</span>
                         <button id="copyRewritten" class="copy-btn hidden"><i class="fa-regular fa-copy"></i> Copy</button>
                     </div>
-                    <div style="flex:1; overflow-y:auto;">
+                    <div style="flex:1; overflow-y:auto; min-height:0;">
                         <div id="rewritePlaceholder" class="empty-state" style="height:100%;">
                             <i class="fa-solid fa-wand-magic-sparkles"></i>
                             <p>Rewritten code will appear here</p>
@@ -967,6 +982,27 @@
            CONSTANTS
         ═══════════════════════════════════════ */
         const API = window.location.origin;
+
+        // Map dropdown language values to Monaco language IDs
+        const MONACO_LANG_MAP = {
+            "python": "python",
+            "javascript": "javascript",
+            "typescript": "typescript",
+            "java": "java",
+            "cpp": "cpp",
+            "c": "c",
+            "csharp": "csharp",
+            "go": "go",
+            "rust": "rust",
+            "ruby": "ruby",
+            "php": "php",
+            "swift": "swift",
+            "kotlin": "kotlin",
+            "sql": "sql",
+            "html": "html",
+            "css": "css",
+        };
+        function getMonacoLang(val) { return MONACO_LANG_MAP[val] || val; }
 
         /* ═══════════════════════════════════════
            THEME MANAGEMENT
@@ -1253,11 +1289,11 @@
 
             // ── Sync language dropdown ──
             document.getElementById("langSelect").addEventListener("change", function () {
-                monaco.editor.setModelLanguage(codeEditor.getModel(), this.value);
+                monaco.editor.setModelLanguage(codeEditor.getModel(), getMonacoLang(this.value));
             });
             document.getElementById("rewriteLangSelect").addEventListener("change", function () {
-                monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), this.value);
-                monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), this.value);
+                monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), getMonacoLang(this.value));
+                monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), getMonacoLang(this.value));
             });
 
             // ── Responsive layout ──
@@ -1350,15 +1386,30 @@
 
         function countSeverities(md) {
             let c = 0, h = 0, m = 0, l = 0;
-            const match = md.match(/Critical:\s*(\d+)\s*\|\s*High:\s*(\d+)\s*\|\s*Medium:\s*(\d+)\s*\|\s*Low:\s*(\d+)/i);
-            if (match) {
-                c = parseInt(match[1], 10); h = parseInt(match[2], 10);
-                m = parseInt(match[3], 10); l = parseInt(match[4], 10);
+
+            // Strategy 1 — pipe-separated format: Critical: 0 | High: 8 | ...
+            const pipeMatch = md.match(/Critical:\s*(\d+)\s*\|\s*High:\s*(\d+)\s*\|\s*Medium:\s*(\d+)\s*\|\s*Low:\s*(\d+)/i);
+            if (pipeMatch) {
+                c = parseInt(pipeMatch[1], 10); h = parseInt(pipeMatch[2], 10);
+                m = parseInt(pipeMatch[3], 10); l = parseInt(pipeMatch[4], 10);
             } else {
-                c = (md.match(/##.*Critical/gi) || []).length;
-                h = (md.match(/##.*High/gi) || []).length;
-                m = (md.match(/##.*Medium/gi) || []).length;
-                l = (md.match(/##.*Low/gi) || []).length;
+                // Strategy 2 — line-by-line format: 🔴 Critical : 0 / Critical: 0
+                const critMatch = md.match(/Critical\s*:\s*(\d+)/i);
+                const highMatch = md.match(/High\s*:\s*(\d+)/i);
+                const medMatch  = md.match(/Medium\s*:\s*(\d+)/i);
+                const lowMatch  = md.match(/Low\s*:\s*(\d+)/i);
+                if (critMatch || highMatch || medMatch || lowMatch) {
+                    c = critMatch ? parseInt(critMatch[1], 10) : 0;
+                    h = highMatch ? parseInt(highMatch[1], 10) : 0;
+                    m = medMatch  ? parseInt(medMatch[1], 10)  : 0;
+                    l = lowMatch  ? parseInt(lowMatch[1], 10)  : 0;
+                } else {
+                    // Strategy 3 — count headings with severity keywords
+                    c = (md.match(/###?\s*.*Critical/gi) || []).length;
+                    h = (md.match(/###?\s*.*High/gi) || []).length;
+                    m = (md.match(/###?\s*.*Medium/gi) || []).length;
+                    l = (md.match(/###?\s*.*Low/gi) || []).length;
+                }
             }
             document.querySelector("#countCritical b").textContent = c;
             document.querySelector("#countHigh b").textContent = h;
@@ -1378,8 +1429,8 @@
             setEditorValue(rewriteInputEditor, "rewriteInputContainer", code);
             document.getElementById("rewriteLangSelect").value = langSelect.value;
             if (typeof monaco !== "undefined" && rewriteInputEditor) {
-                monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), langSelect.value);
-                monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), langSelect.value);
+                monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), getMonacoLang(langSelect.value));
+                monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), getMonacoLang(langSelect.value));
             }
             document.querySelector('[data-tab="rewrite"]').click();
             setTimeout(runRewrite, 150);
@@ -1421,7 +1472,7 @@
                 rewriteOutputContainer.classList.remove("hidden");
                 setEditorValue(rewriteOutputEditor, "rewriteOutputContainer", data.rewritten_code || "");
                 if (typeof monaco !== "undefined" && rewriteOutputEditor) {
-                    monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), rewriteLangSelect.value);
+                    monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), getMonacoLang(rewriteLangSelect.value));
                 }
 
                 if (data.improvements && data.improvements.length > 0) {
