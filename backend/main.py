@@ -97,6 +97,24 @@ class RewriteResponse(BaseModel):
     tokens_used: Optional[int] = None
 
 
+class ChatMessage(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    code: str = Field(default="")
+    language: str = Field(default="python")
+    history: list[ChatMessage] = Field(default_factory=list)
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    model: str
+    tokens_used: Optional[int] = None
+
+
 # ───────────────────────────────────────────────────────────────
 # Prompt Engineering
 # ───────────────────────────────────────────────────────────────
@@ -189,6 +207,19 @@ Example:
 {"rewritten_code": "print('Hello, World!')", "improvements": ["No changes needed."]}
 
 Do NOT include markdown, code fences, or any text outside the JSON object.
+"""
+
+CHAT_SYSTEM_PROMPT = """
+You are a helpful AI coding assistant embedded in a code review tool.
+The user may provide a code snippet for context. Answer questions about the code clearly and concisely.
+
+RULES:
+1. If code context is provided, refer to it when answering.
+2. Provide short, accurate, and actionable answers.
+3. Use code snippets in your answers when helpful (wrap them in markdown fenced code blocks).
+4. If the question is unrelated to programming, politely redirect the user.
+5. Be friendly but professional.
+6. Format your response with Markdown for readability.
 """
 
 # ───────────────────────────────────────────────────────────────
@@ -363,6 +394,29 @@ async def rewrite_code(req: RewriteRequest):
         model=MODEL_ID,
         tokens_used=tokens,
     )
+
+
+# ───────────────────────────────────────────────────────────────
+# Routes — Chat
+# ───────────────────────────────────────────────────────────────
+@app.post("/api/chat", response_model=ChatResponse, tags=["Chat"])
+async def chat(req: ChatRequest):
+    """Chat with the AI about code — supports conversation history."""
+    # Build user prompt with optional code context
+    parts = []
+    if req.code.strip():
+        parts.append(f"Code context ({req.language}):\n```{req.language}\n{req.code}\n```\n")
+
+    # Append conversation history
+    for msg in req.history[-10:]:  # Keep last 10 messages for context
+        parts.append(f"{msg.role}: {msg.content}")
+
+    parts.append(f"user: {req.message}")
+    user_prompt = "\n\n".join(parts)
+
+    content, tokens = _call_llm(CHAT_SYSTEM_PROMPT, user_prompt)
+
+    return ChatResponse(reply=content or "Sorry, I couldn't generate a response.", model=MODEL_ID, tokens_used=tokens)
 
 
 # ───────────────────────────────────────────────────────────────
