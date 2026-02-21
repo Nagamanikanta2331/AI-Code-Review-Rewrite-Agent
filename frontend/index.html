@@ -1142,6 +1142,10 @@
             background: var(--success-subtle);
             color: var(--success);
         }
+        .code-hist-icon.convert {
+            background: var(--warning-subtle);
+            color: var(--warning);
+        }
         .code-hist-info {
             flex: 1;
             min-width: 0;
@@ -1178,6 +1182,10 @@
         .code-hist-type.rewrite {
             background: var(--success-subtle);
             color: var(--success);
+        }
+        .code-hist-type.convert {
+            background: var(--warning-subtle);
+            color: var(--warning);
         }
         .code-hist-delete {
             position: absolute;
@@ -1271,6 +1279,9 @@
         </button>
         <button data-tab="rewrite" class="tab-btn">
             <i class="fa-solid fa-wand-magic-sparkles"></i> Rewrite Code
+        </button>
+        <button data-tab="convert" class="tab-btn">
+            <i class="fa-solid fa-right-left"></i> Convert Code
         </button>
         <button data-tab="howItWorks" class="tab-btn tab-active">
             <i class="fa-solid fa-circle-info"></i> How It Works
@@ -1445,6 +1456,94 @@
                                 <i class="fa-solid fa-check-double" style="color:var(--success);"></i> Improvements Made
                             </div>
                             <div id="improvementsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────── TAB: CONVERT CODE ─────────── -->
+        <div id="tab-convert" class="tab-content" style="flex:1; display:none; flex-direction:column; overflow:hidden; min-height:0;">
+            <!-- Controls -->
+            <div class="controls-bar" style="gap:12px; flex-wrap:wrap;">
+                <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-code"></i> From</div>
+                <select id="convertFromLang" class="select-modern">
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="c">C</option>
+                    <option value="csharp">C#</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="php">PHP</option>
+                    <option value="swift">Swift</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="sql">SQL</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                </select>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-arrow-right" style="color:var(--accent); font-size:14px;"></i>
+                </div>
+                <div class="section-label" style="margin-bottom:0;"><i class="fa-solid fa-code"></i> To</div>
+                <select id="convertToLang" class="select-modern">
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="c">C</option>
+                    <option value="csharp">C#</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="php">PHP</option>
+                    <option value="swift">Swift</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="sql">SQL</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                </select>
+                <button id="swapLangsBtn" class="icon-btn" title="Swap languages" style="font-size:16px; color:var(--accent);">
+                    <i class="fa-solid fa-right-left"></i>
+                </button>
+                <div style="flex:1;"></div>
+                <button id="convertBtn" class="btn btn-primary">
+                    <i class="fa-solid fa-right-left"></i> Convert Code
+                </button>
+            </div>
+            <!-- Side-by-side -->
+            <div style="flex:1; display:flex; overflow:hidden; min-height:0;">
+                <!-- Source -->
+                <div style="flex:1; display:flex; flex-direction:column; border-right:1px solid var(--border); min-height:0;">
+                    <div class="panel-header"><span class="panel-header-label"><i class="fa-solid fa-file-code"></i> Source Code</span></div>
+                    <div style="flex:1; position:relative;">
+                        <div id="convertInputContainer" style="height:100%;">
+                            <div class="editor-loading"><i class="fa-solid fa-spinner"></i> Loading editor…</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Converted -->
+                <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+                    <div class="panel-header">
+                        <span class="panel-header-label"><i class="fa-solid fa-right-left"></i> Converted Code</span>
+                        <button id="copyConverted" class="copy-btn hidden"><i class="fa-regular fa-copy"></i> Copy</button>
+                    </div>
+                    <div style="flex:1; overflow-y:auto; min-height:0;">
+                        <div id="convertPlaceholder" class="empty-state" style="height:100%;">
+                            <i class="fa-solid fa-right-left"></i>
+                            <p>Converted code will appear here</p>
+                        </div>
+                        <div id="convertOutputContainer" class="hidden" style="height:100%; min-height:300px;"></div>
+                        <!-- Conversion Notes -->
+                        <div id="convertNotesSection" class="hidden" style="border-top:1px solid var(--border); padding:16px 20px;">
+                            <div class="section-label" style="margin-bottom:10px;">
+                                <i class="fa-solid fa-clipboard-list" style="color:var(--warning);"></i> Conversion Notes
+                            </div>
+                            <div id="convertNotesList"></div>
                         </div>
                     </div>
                 </div>
@@ -1727,6 +1826,10 @@
                         if (rewriteInputEditor) rewriteInputEditor.layout();
                         if (rewriteOutputEditor) rewriteOutputEditor.layout();
                     }
+                    if (btn.dataset.tab === "convert") {
+                        if (convertInputEditor) convertInputEditor.layout();
+                        if (convertOutputEditor) convertOutputEditor.layout();
+                    }
                     if (btn.dataset.tab === "howItWorks") {
                         target.style.display = "block";
                         target.style.overflowY = "auto";
@@ -1782,6 +1885,8 @@
         let codeEditor = null;
         let rewriteInputEditor = null;
         let rewriteOutputEditor = null;
+        let convertInputEditor = null;
+        let convertOutputEditor = null;
 
         const MONACO_CDN = "https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min";
 
@@ -1810,7 +1915,7 @@
 
         function initFallbackTextareas() {
             const style = "width:100%;height:100%;background:var(--bg-primary);color:var(--text-primary);border:none;outline:none;resize:none;padding:14px;font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.6;display:block;";
-            ["codeEditorContainer","rewriteInputContainer"].forEach(function(id) {
+            ["codeEditorContainer","rewriteInputContainer","convertInputContainer"].forEach(function(id) {
                 var el = document.getElementById(id);
                 if (el && !el.querySelector(".monaco-editor")) {
                     el.innerHTML = '<textarea id="' + id + '_ta" style="' + style + '" placeholder="Paste your code here…" spellcheck="false"></textarea>';
@@ -1820,13 +1925,17 @@
             if (ro && !ro.querySelector(".monaco-editor")) {
                 ro.innerHTML = '<pre id="rewriteOutputContainer_pre" style="' + style + 'overflow:auto;white-space:pre;"></pre>';
             }
+            var co = document.getElementById("convertOutputContainer");
+            if (co && !co.querySelector(".monaco-editor")) {
+                co.innerHTML = '<pre id="convertOutputContainer_pre" style="' + style + 'overflow:auto;white-space:pre;"></pre>';
+            }
         }
 
         require(["vs/editor/editor.main"], function () {
             monacoLoaded = true;
 
             // Clear the "Loading editor..." placeholders
-            ["codeEditorContainer","rewriteInputContainer","rewriteOutputContainer"].forEach(function(id) {
+            ["codeEditorContainer","rewriteInputContainer","rewriteOutputContainer","convertInputContainer","convertOutputContainer"].forEach(function(id) {
                 var el = document.getElementById(id);
                 if (el) {
                     var loader = el.querySelector(".editor-loading");
@@ -2246,6 +2355,17 @@
                 readOnly: true, domReadOnly: true,
             });
 
+            // ── Convert Input Editor ──
+            convertInputEditor = monaco.editor.create(document.getElementById("convertInputContainer"), {
+                ...sharedOpts, value: "", language: "python", theme: currentTheme,
+            });
+
+            // ── Convert Output Editor (read-only) ──
+            convertOutputEditor = monaco.editor.create(document.getElementById("convertOutputContainer"), {
+                ...sharedOpts, value: "", language: "javascript", theme: currentTheme,
+                readOnly: true, domReadOnly: true,
+            });
+
             // Activate glow on focus
             codeEditor.onDidFocusEditorText(() => document.getElementById("codeEditorWrap").classList.add("active"));
             codeEditor.onDidBlurEditorText(() => document.getElementById("codeEditorWrap").classList.remove("active"));
@@ -2258,12 +2378,20 @@
                 monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), getMonacoLang(this.value));
                 monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), getMonacoLang(this.value));
             });
+            document.getElementById("convertFromLang").addEventListener("change", function () {
+                if (convertInputEditor) monaco.editor.setModelLanguage(convertInputEditor.getModel(), getMonacoLang(this.value));
+            });
+            document.getElementById("convertToLang").addEventListener("change", function () {
+                if (convertOutputEditor) monaco.editor.setModelLanguage(convertOutputEditor.getModel(), getMonacoLang(this.value));
+            });
 
             // ── Responsive layout ──
             window.addEventListener("resize", () => {
                 codeEditor && codeEditor.layout();
                 rewriteInputEditor && rewriteInputEditor.layout();
                 rewriteOutputEditor && rewriteOutputEditor.layout();
+                convertInputEditor && convertInputEditor.layout();
+                convertOutputEditor && convertOutputEditor.layout();
             });
 
             // Force layout multiple times to ensure proper rendering
@@ -2271,6 +2399,8 @@
                 if (codeEditor) codeEditor.layout();
                 if (rewriteInputEditor) rewriteInputEditor.layout();
                 if (rewriteOutputEditor) rewriteOutputEditor.layout();
+                if (convertInputEditor) convertInputEditor.layout();
+                if (convertOutputEditor) convertOutputEditor.layout();
             }
             requestAnimationFrame(forceAllLayouts);
             setTimeout(forceAllLayouts, 100);
@@ -2467,6 +2597,98 @@
             const val = getEditorValue(rewriteOutputEditor, "rewriteOutputContainer");
             copyText(val, copyRewritten);
         });
+
+        /* ═══════════════════════════════════════
+           CODE CONVERSION
+        ═══════════════════════════════════════ */
+        const convertBtn = document.getElementById("convertBtn");
+        const convertFromLang = document.getElementById("convertFromLang");
+        const convertToLang = document.getElementById("convertToLang");
+        const swapLangsBtn = document.getElementById("swapLangsBtn");
+        const convertPlaceholder = document.getElementById("convertPlaceholder");
+        const convertOutputContainer = document.getElementById("convertOutputContainer");
+        const convertNotesSection = document.getElementById("convertNotesSection");
+        const convertNotesList = document.getElementById("convertNotesList");
+        const copyConverted = document.getElementById("copyConverted");
+
+        convertBtn.addEventListener("click", runConvert);
+
+        swapLangsBtn.addEventListener("click", () => {
+            const fromVal = convertFromLang.value;
+            const toVal = convertToLang.value;
+            convertFromLang.value = toVal;
+            convertToLang.value = fromVal;
+            if (typeof monaco !== "undefined") {
+                if (convertInputEditor) monaco.editor.setModelLanguage(convertInputEditor.getModel(), getMonacoLang(toVal));
+                if (convertOutputEditor) monaco.editor.setModelLanguage(convertOutputEditor.getModel(), getMonacoLang(fromVal));
+            }
+        });
+
+        copyConverted.addEventListener("click", () => {
+            const val = getEditorValue(convertOutputEditor, "convertOutputContainer");
+            copyText(val, copyConverted);
+        });
+
+        async function runConvert() {
+            const code = getEditorValue(convertInputEditor, "convertInputContainer").trim();
+            if (!code) { alert("Please paste some code first."); return; }
+
+            const fromLang = convertFromLang.value;
+            const toLang = convertToLang.value;
+            if (fromLang === toLang) { alert("Source and target languages are the same."); return; }
+
+            convertBtn.disabled = true;
+            showLoading("Converting " + fromLang + " to " + toLang + "…");
+
+            try {
+                const res = await fetch(API + "/api/convert", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code: code, from_language: fromLang, to_language: toLang }),
+                });
+                if (!res.ok) {
+                    const e = await res.json().catch(() => ({}));
+                    throw new Error(e.detail || "HTTP " + res.status);
+                }
+                const data = await res.json();
+
+                convertPlaceholder.classList.add("hidden");
+                convertOutputContainer.classList.remove("hidden");
+                setEditorValue(convertOutputEditor, "convertOutputContainer", data.converted_code || "");
+                if (typeof monaco !== "undefined" && convertOutputEditor) {
+                    monaco.editor.setModelLanguage(convertOutputEditor.getModel(), getMonacoLang(toLang));
+                }
+
+                if (data.notes && data.notes.length > 0) {
+                    convertNotesSection.classList.remove("hidden");
+                    convertNotesList.innerHTML = data.notes.map(note => {
+                        const safe = note.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        return '<div class="improvement-item"><i class="fa-solid fa-circle-info" style="color:var(--warning); margin-top:3px; font-size:11px; flex-shrink:0;"></i> ' + safe + '</div>';
+                    }).join("");
+                } else {
+                    convertNotesSection.classList.add("hidden");
+                }
+
+                copyConverted.classList.remove("hidden");
+
+                // Save to code history
+                saveCodeHistory({
+                    type: 'convert',
+                    language: fromLang,
+                    to_language: toLang,
+                    code: code,
+                    result: data.converted_code,
+                    notes: data.notes
+                });
+            } catch (err) {
+                convertPlaceholder.classList.add("hidden");
+                convertOutputContainer.classList.remove("hidden");
+                setEditorValue(convertOutputEditor, "convertOutputContainer", "Error: " + err.message);
+            } finally {
+                convertBtn.disabled = false;
+                hideLoading();
+            }
+        }
 
         /* ═══════════════════════════════════════
            CHAT
@@ -2676,19 +2898,20 @@
                 codeHistoryBadge.classList.remove('visible');
             }
             if (count === 0) {
-                codeHistoryListEl.innerHTML = '<div class="code-history-empty"><i class="fa-solid fa-folder-open"></i><p>No code history yet.<br>Review or rewrite code to see it here.</p></div>';
+                codeHistoryListEl.innerHTML = '<div class="code-history-empty"><i class="fa-solid fa-folder-open"></i><p>No code history yet.<br>Review, rewrite, or convert code to see it here.</p></div>';
                 return;
             }
             codeHistoryListEl.innerHTML = history.map(e => {
-                const icon = e.type === 'review' ? 'fa-magnifying-glass' : 'fa-wand-magic-sparkles';
+                const icon = e.type === 'review' ? 'fa-magnifying-glass' : e.type === 'convert' ? 'fa-right-left' : 'fa-wand-magic-sparkles';
                 const langLabel = (e.language || 'python').charAt(0).toUpperCase() + (e.language || 'python').slice(1);
+                const subLabel = e.type === 'convert' && e.to_language ? ' → ' + e.to_language.charAt(0).toUpperCase() + e.to_language.slice(1) : '';
                 return `<div class="code-history-item" data-id="${e.id}">
                     <div class="code-hist-icon ${e.type}"><i class="fa-solid ${icon}"></i></div>
                     <div class="code-hist-info">
                         <div class="code-hist-title">${e.preview || 'Code snippet'}</div>
                         <div class="code-hist-meta">
                             <span class="code-hist-type ${e.type}">${e.type}</span>
-                            <span>${langLabel}</span>
+                            <span>${langLabel}${subLabel}</span>
                             <span>${formatTimeAgo(e.timestamp)}</span>
                         </div>
                     </div>
@@ -2731,6 +2954,30 @@
                         reviewOutput.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
                         countSeverities(entry.result);
                         copyReview.classList.remove('hidden');
+                    }
+                }, 100);
+            } else if (entry.type === 'convert') {
+                document.querySelector('[data-tab="convert"]').click();
+                setTimeout(() => {
+                    setEditorValue(convertInputEditor, 'convertInputContainer', entry.code || '');
+                    convertFromLang.value = entry.language || 'python';
+                    convertToLang.value = entry.to_language || 'javascript';
+                    if (typeof monaco !== 'undefined') {
+                        if (convertInputEditor) monaco.editor.setModelLanguage(convertInputEditor.getModel(), getMonacoLang(entry.language || 'python'));
+                        if (convertOutputEditor) monaco.editor.setModelLanguage(convertOutputEditor.getModel(), getMonacoLang(entry.to_language || 'javascript'));
+                    }
+                    if (entry.result) {
+                        convertPlaceholder.classList.add('hidden');
+                        convertOutputContainer.classList.remove('hidden');
+                        setEditorValue(convertOutputEditor, 'convertOutputContainer', entry.result);
+                        copyConverted.classList.remove('hidden');
+                        if (entry.notes && entry.notes.length > 0) {
+                            convertNotesSection.classList.remove('hidden');
+                            convertNotesList.innerHTML = entry.notes.map(note => {
+                                const safe = note.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                return '<div class="improvement-item"><i class="fa-solid fa-circle-info" style="color:var(--warning); margin-top:3px; font-size:11px; flex-shrink:0;"></i> ' + safe + '</div>';
+                            }).join('');
+                        }
                     }
                 }, 100);
             } else {
@@ -2948,6 +3195,7 @@
                 if (activeTab) {
                     if (activeTab.dataset.tab === "review") reviewBtn.click();
                     else if (activeTab.dataset.tab === "rewrite") rewriteBtn.click();
+                    else if (activeTab.dataset.tab === "convert") document.getElementById("convertBtn").click();
                     else if (activeTab.dataset.tab === "chat") sendChatMessage();
                 }
             }

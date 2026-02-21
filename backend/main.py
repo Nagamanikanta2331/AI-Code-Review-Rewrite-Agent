@@ -115,6 +115,19 @@ class ChatResponse(BaseModel):
     tokens_used: Optional[int] = None
 
 
+class ConvertRequest(BaseModel):
+    code: str = Field(..., min_length=1)
+    from_language: str = Field(default="python")
+    to_language: str = Field(default="javascript")
+
+
+class ConvertResponse(BaseModel):
+    converted_code: str
+    notes: list[str]
+    model: str
+    tokens_used: Optional[int] = None
+
+
 # ───────────────────────────────────────────────────────────────
 # Prompt Engineering
 # ───────────────────────────────────────────────────────────────
@@ -222,6 +235,45 @@ RULES:
 6. Format your response with Markdown for readability.
 """
 
+CONVERT_SYSTEM_PROMPT = """
+You are a world-class software engineer who converts code between programming languages with perfect accuracy.
+
+GOAL:
+Accurately convert the given source code into the EXACT target language specified by the user.
+Pay very close attention to the target language — do NOT default to JavaScript or any other language.
+
+RULES:
+1. The output code MUST be valid, compilable/runnable code in the TARGET language only.
+2. Preserve the original logic, control flow, and intent exactly.
+3. Use idiomatic patterns, syntax, and conventions of the TARGET language.
+4. Convert language-specific constructs (print, types, string formatting, etc.) to their proper TARGET language equivalents.
+5. For statically typed languages (C, C++, Java, Go, Rust, etc.), add proper type declarations, includes/imports, and a main function/entry point if the original code has top-level statements.
+6. If the source uses a library, use the equivalent library in the target language or note that no direct equivalent exists.
+7. Keep the converted code clean, readable, and properly indented.
+8. Do NOT add extra features or code not in the original.
+9. Do NOT output code in any language other than the specified target language.
+
+LANGUAGE-SPECIFIC GUIDANCE:
+- C: Use #include <stdio.h>, printf(), proper main() function, explicit types.
+- C++: Use #include <iostream>, cout, proper main(), std:: namespace.
+- Java: Use public class with main method, System.out.println.
+- Go: Use package main, fmt.Println, func main().
+- Rust: Use fn main(), println!() macro, proper ownership.
+- Python: Use print(), def for functions, no type annotations unless in original.
+- JavaScript: Use console.log(), function or arrow functions.
+- TypeScript: Add type annotations, use console.log().
+
+OUTPUT FORMAT:
+You MUST return a valid JSON object with exactly two keys:
+- "converted_code": a string containing ONLY the converted code in the target language
+- "notes": an array of strings, each a short note about conversion decisions (max 5)
+
+Example (Python to C):
+{"converted_code": "#include <stdio.h>\n\nint main() {\n    printf(\"Hello, World!\\n\");\n    return 0;\n}", "notes": ["Converted print() to printf()", "Added main() entry point required by C"]}
+
+Do NOT include markdown, code fences, or any text outside the JSON object.
+"""
+
 # ───────────────────────────────────────────────────────────────
 # Helpers
 # ───────────────────────────────────────────────────────────────
@@ -238,7 +290,7 @@ def _call_llm(system: str, user: str, json_mode: bool = False) -> tuple[str, Opt
     """Call Google Gemini with retry logic and return (content, total_tokens)."""
     _ensure_gemini()
 
-    max_retries = 3
+    max_retries = 5
     for attempt in range(max_retries):
         try:
             config = types.GenerateContentConfig(
@@ -270,11 +322,14 @@ def _call_llm(system: str, user: str, json_mode: bool = False) -> tuple[str, Opt
             error_msg = str(exc).lower()
             if "rate" in error_msg or "quota" in error_msg or "429" in error_msg:
                 if attempt < max_retries - 1:
-                    wait = (attempt + 1) * 5
-                    print(f"[Gemini] Rate limited. Retrying in {wait}s...")
+                    wait = (attempt + 1) * 10  # 10s, 20s, 30s, 40s
+                    print(f"[Gemini] Rate limited (attempt {attempt+1}/{max_retries}). Retrying in {wait}s...")
                     time.sleep(wait)
                     continue
-                raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="Gemini rate limit exceeded. Wait and retry.")
+                raise HTTPException(
+                    status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Gemini rate limit exceeded. Free tier allows only 10 requests/minute. Please wait ~60 seconds and try again.",
+                )
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f"Gemini API error: {str(exc)}")
 
     raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Gemini API failed after retries.")
@@ -417,6 +472,35 @@ async def chat(req: ChatRequest):
     content, tokens = _call_llm(CHAT_SYSTEM_PROMPT, user_prompt)
 
     return ChatResponse(reply=content or "Sorry, I couldn't generate a response.", model=MODEL_ID, tokens_used=tokens)
+
+
+# ───────────────────────────────────────────────────────────────
+# Routes — Code Conversion
+# ───────────────────────────────────────────────────────────────
+@app.post("/api/convert", response_model=ConvertResponse, tags=["Code Conversion"])
+async def convert_code(req: ConvertRequest):
+    """Convert code from one programming language to another."""
+    user_prompt = f"Convert the following {req.from_language} code to {req.to_language}.\n\nSOURCE LANGUAGE: {req.from_language}\nTARGET LANGUAGE: {req.to_language}\n\nThe output MUST be valid {req.to_language} code. Do NOT output any other language.\n\n```{req.from_language}\n{req.code}\n```"
+
+    content, tokens = _call_llm(CONVERT_SYSTEM_PROMPT, user_prompt, json_mode=True)
+
+    try:
+        parsed = extract_json(content)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f"Model returned invalid response. Please retry. ({exc})")
+
+    converted = parsed.get("converted_code", "")
+    notes = parsed.get("notes", [])
+
+    if not converted:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail="Model did not return converted code.")
+
+    return ConvertResponse(
+        converted_code=converted,
+        notes=notes if isinstance(notes, list) else [str(notes)],
+        model=MODEL_ID,
+        tokens_used=tokens,
+    )
 
 
 # ───────────────────────────────────────────────────────────────
