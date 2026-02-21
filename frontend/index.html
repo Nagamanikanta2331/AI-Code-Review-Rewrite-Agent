@@ -871,6 +871,349 @@
             color: var(--text-secondary);
             line-height: 1.5;
         }
+
+        /* ────────────────────────────────────────
+           Chat History Sidebar
+        ──────────────────────────────────────── */
+        .chat-layout {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+        .chat-history-sidebar {
+            width: 280px;
+            min-width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .chat-history-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .chat-history-header h3 {
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-history-header h3 i {
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .btn-new-chat {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-new-chat:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-subtle);
+        }
+        .chat-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .chat-history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 2px;
+            position: relative;
+        }
+        .chat-history-item:hover {
+            background: var(--bg-tertiary);
+        }
+        .chat-history-item.active {
+            background: var(--accent-subtle);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        .chat-history-item .chat-hist-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .chat-history-item.active .chat-hist-icon {
+            background: var(--accent);
+            color: white;
+        }
+        .chat-hist-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .chat-hist-title {
+            font-size: 12.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+        .chat-hist-time {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+        .chat-hist-delete {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 11px;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+        .chat-history-item:hover .chat-hist-delete { opacity: 1; }
+        .chat-hist-delete:hover { color: var(--error); background: var(--error-subtle); }
+        .chat-history-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .chat-history-empty i {
+            font-size: 28px;
+            margin-bottom: 10px;
+            opacity: 0.4;
+        }
+        .chat-history-empty p {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* ────────────────────────────────────────
+           Code History Dropdown
+        ──────────────────────────────────────── */
+        .code-history-wrapper {
+            position: relative;
+        }
+        .code-history-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 15px;
+            padding: 4px;
+            transition: color 0.2s ease;
+            position: relative;
+        }
+        .code-history-btn:hover { color: var(--text-primary); }
+        .code-history-btn .history-badge {
+            position: absolute;
+            top: -4px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            display: none;
+        }
+        .code-history-btn .history-badge.visible { display: flex; }
+        .code-history-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            width: 380px;
+            max-height: 480px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .code-history-dropdown.open { display: flex; }
+        .code-history-dropdown-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .code-history-dropdown-header h4 {
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .code-history-dropdown-header h4 i {
+            color: var(--accent);
+        }
+        .clear-code-history-btn {
+            font-size: 10.5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .clear-code-history-btn:hover {
+            color: var(--error);
+            border-color: var(--error);
+            background: var(--error-subtle);
+        }
+        .code-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .code-history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 2px;
+            position: relative;
+        }
+        .code-history-item:hover { background: var(--bg-tertiary); }
+        .code-hist-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .code-hist-icon.review {
+            background: var(--accent-subtle);
+            color: var(--accent);
+        }
+        .code-hist-icon.rewrite {
+            background: var(--success-subtle);
+            color: var(--success);
+        }
+        .code-hist-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .code-hist-title {
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+        .code-hist-meta {
+            font-size: 10.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 1px;
+        }
+        .code-hist-type {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .code-hist-type.review {
+            background: var(--accent-subtle);
+            color: var(--accent);
+        }
+        .code-hist-type.rewrite {
+            background: var(--success-subtle);
+            color: var(--success);
+        }
+        .code-hist-delete {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 11px;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 0.15s ease;
+        }
+        .code-history-item:hover .code-hist-delete { opacity: 1; }
+        .code-hist-delete:hover { color: var(--error); background: var(--error-subtle); }
+        .code-history-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .code-history-empty i {
+            font-size: 28px;
+            margin-bottom: 10px;
+            opacity: 0.4;
+        }
+        .code-history-empty p {
+            font-size: 12px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 
@@ -889,6 +1232,24 @@
             <span id="apiBadge" class="api-badge connected">
                 <span class="pulse-dot"></span> API Connected
             </span>
+            <div class="code-history-wrapper">
+                <button id="codeHistoryBtn" class="code-history-btn" title="Code History">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span id="codeHistoryBadge" class="history-badge">0</span>
+                </button>
+                <div id="codeHistoryDropdown" class="code-history-dropdown">
+                    <div class="code-history-dropdown-header">
+                        <h4><i class="fa-solid fa-clock-rotate-left"></i> Code History</h4>
+                        <button id="clearCodeHistoryBtn" class="clear-code-history-btn">Clear All</button>
+                    </div>
+                    <div id="codeHistoryList" class="code-history-list">
+                        <div class="code-history-empty">
+                            <i class="fa-solid fa-folder-open"></i>
+                            <p>No code history yet.<br>Review or rewrite code to see it here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme" title="Toggle dark/light theme">
                 <span class="toggle-icon icon-sun">☀️</span>
                 <span class="toggle-icon icon-moon">🌙</span>
@@ -1168,6 +1529,23 @@
 
         <!-- ─────────── TAB: CHAT ─────────── -->
         <div id="tab-chat" class="tab-content" style="flex:1; display:none; overflow:hidden;">
+            <div class="chat-layout">
+                <!-- Chat History Sidebar -->
+                <div class="chat-history-sidebar">
+                    <div class="chat-history-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Chat History</h3>
+                        <button id="newChatBtn" class="btn-new-chat">
+                            <i class="fa-solid fa-plus"></i> New Chat
+                        </button>
+                    </div>
+                    <div id="chatHistoryList" class="chat-history-list">
+                        <div class="chat-history-empty">
+                            <i class="fa-solid fa-comments"></i>
+                            <p>No conversations yet.<br>Start a chat to see it here.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Chat Main Area -->
             <div class="chat-container">
                 <!-- Chat Header -->
                 <div class="chat-header">
@@ -1225,6 +1603,7 @@
                     </p>
                 </div>
             </div>
+            </div>  <!-- end chat-layout -->
         </div>
 
     </div>
@@ -1958,6 +2337,9 @@
                 reviewOutput.querySelectorAll("pre code").forEach(b => hljs.highlightElement(b));
                 countSeverities(md);
                 copyReview.classList.remove("hidden");
+
+                // Save to code history
+                saveCodeHistory({ type: 'review', language: langSelect.value, code: code, result: md });
             } catch (err) {
                 reviewOutput.classList.remove("hidden");
                 reviewPlaceholder.classList.add("hidden");
@@ -2068,6 +2450,9 @@
                 }
 
                 copyRewritten.classList.remove("hidden");
+
+                // Save to code history
+                saveCodeHistory({ type: 'rewrite', language: rewriteLangSelect.value, code: code, result: data.rewritten_code, improvements: data.improvements });
             } catch (err) {
                 rewritePlaceholder.classList.add("hidden");
                 rewriteOutputContainer.classList.remove("hidden");
@@ -2119,17 +2504,10 @@
 
         // Clear chat
         clearChatBtn.addEventListener("click", () => {
+            currentChatId = null;
             chatHistory = [];
-            chatMessages.innerHTML = `
-                <div class="chat-welcome">
-                    <div style="width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg, var(--accent), var(--accent-hover)); display:inline-flex; align-items:center; justify-content:center; font-size:22px; color:white; margin-bottom:14px; box-shadow:0 4px 16px var(--accent-glow);">
-                        <i class="fa-solid fa-robot"></i>
-                    </div>
-                    <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">Ask me anything about your code</h3>
-                    <p style="font-size:12.5px; color:var(--text-secondary); max-width:400px; margin:0 auto; line-height:1.5;">
-                        Paste code in the Review tab first, then ask questions here.
-                    </p>
-                </div>`;
+            resetChatUI();
+            renderChatHistory();
         });
 
         function appendChatBubble(role, content) {
@@ -2232,6 +2610,9 @@
                 chatHistory.push({ role: "user", content: message });
                 chatHistory.push({ role: "assistant", content: data.reply });
 
+                // Save chat session to localStorage
+                saveChatSession();
+
             } catch (err) {
                 removeTypingIndicator();
                 appendChatBubble("ai", "**Error:** " + err.message);
@@ -2240,6 +2621,308 @@
                 chatInput.focus();
             }
         }
+
+        /* ═══════════════════════════════════════
+           CODE HISTORY (localStorage)
+        ═══════════════════════════════════════ */
+        const CODE_HISTORY_KEY = 'ai-code-review-code-history';
+        const codeHistoryBtn = document.getElementById('codeHistoryBtn');
+        const codeHistoryDropdown = document.getElementById('codeHistoryDropdown');
+        const codeHistoryListEl = document.getElementById('codeHistoryList');
+        const codeHistoryBadge = document.getElementById('codeHistoryBadge');
+        const clearCodeHistoryBtn = document.getElementById('clearCodeHistoryBtn');
+
+        function getCodeHistory() {
+            try { return JSON.parse(localStorage.getItem(CODE_HISTORY_KEY) || '[]'); } catch { return []; }
+        }
+        function setCodeHistory(arr) {
+            localStorage.setItem(CODE_HISTORY_KEY, JSON.stringify(arr));
+            renderCodeHistory();
+        }
+
+        function saveCodeHistory(entry) {
+            const history = getCodeHistory();
+            entry.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            entry.timestamp = Date.now();
+            entry.preview = entry.code.substring(0, 60).replace(/\n/g, ' ');
+            history.unshift(entry);
+            if (history.length > 50) history.length = 50; // cap at 50
+            setCodeHistory(history);
+        }
+
+        function deleteCodeHistory(id) {
+            setCodeHistory(getCodeHistory().filter(e => e.id !== id));
+        }
+
+        function formatTimeAgo(ts) {
+            const diff = Date.now() - ts;
+            const mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            const days = Math.floor(hrs / 24);
+            if (days < 7) return days + 'd ago';
+            return new Date(ts).toLocaleDateString();
+        }
+
+        function renderCodeHistory() {
+            const history = getCodeHistory();
+            const count = history.length;
+            if (count > 0) {
+                codeHistoryBadge.textContent = count > 9 ? '9+' : count;
+                codeHistoryBadge.classList.add('visible');
+            } else {
+                codeHistoryBadge.classList.remove('visible');
+            }
+            if (count === 0) {
+                codeHistoryListEl.innerHTML = '<div class="code-history-empty"><i class="fa-solid fa-folder-open"></i><p>No code history yet.<br>Review or rewrite code to see it here.</p></div>';
+                return;
+            }
+            codeHistoryListEl.innerHTML = history.map(e => {
+                const icon = e.type === 'review' ? 'fa-magnifying-glass' : 'fa-wand-magic-sparkles';
+                const langLabel = (e.language || 'python').charAt(0).toUpperCase() + (e.language || 'python').slice(1);
+                return `<div class="code-history-item" data-id="${e.id}">
+                    <div class="code-hist-icon ${e.type}"><i class="fa-solid ${icon}"></i></div>
+                    <div class="code-hist-info">
+                        <div class="code-hist-title">${e.preview || 'Code snippet'}</div>
+                        <div class="code-hist-meta">
+                            <span class="code-hist-type ${e.type}">${e.type}</span>
+                            <span>${langLabel}</span>
+                            <span>${formatTimeAgo(e.timestamp)}</span>
+                        </div>
+                    </div>
+                    <button class="code-hist-delete" data-id="${e.id}" title="Delete"><i class="fa-solid fa-xmark"></i></button>
+                </div>`;
+            }).join('');
+
+            // Click to load
+            codeHistoryListEl.querySelectorAll('.code-history-item').forEach(item => {
+                item.addEventListener('click', (ev) => {
+                    if (ev.target.closest('.code-hist-delete')) return;
+                    const entry = history.find(e => e.id === item.dataset.id);
+                    if (!entry) return;
+                    loadCodeHistoryEntry(entry);
+                    codeHistoryDropdown.classList.remove('open');
+                });
+            });
+            // Delete buttons
+            codeHistoryListEl.querySelectorAll('.code-hist-delete').forEach(btn => {
+                btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    deleteCodeHistory(btn.dataset.id);
+                });
+            });
+        }
+
+        function loadCodeHistoryEntry(entry) {
+            if (entry.type === 'review') {
+                document.querySelector('[data-tab="review"]').click();
+                setTimeout(() => {
+                    setEditorValue(codeEditor, 'codeEditorContainer', entry.code || '');
+                    langSelect.value = entry.language || 'python';
+                    if (typeof monaco !== 'undefined' && codeEditor) {
+                        monaco.editor.setModelLanguage(codeEditor.getModel(), getMonacoLang(entry.language || 'python'));
+                    }
+                    if (entry.result) {
+                        reviewPlaceholder.classList.add('hidden');
+                        reviewOutput.classList.remove('hidden');
+                        reviewOutput.innerHTML = marked.parse(entry.result);
+                        reviewOutput.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+                        countSeverities(entry.result);
+                        copyReview.classList.remove('hidden');
+                    }
+                }, 100);
+            } else {
+                document.querySelector('[data-tab="rewrite"]').click();
+                setTimeout(() => {
+                    setEditorValue(rewriteInputEditor, 'rewriteInputContainer', entry.code || '');
+                    rewriteLangSelect.value = entry.language || 'python';
+                    if (typeof monaco !== 'undefined' && rewriteInputEditor) {
+                        monaco.editor.setModelLanguage(rewriteInputEditor.getModel(), getMonacoLang(entry.language || 'python'));
+                        monaco.editor.setModelLanguage(rewriteOutputEditor.getModel(), getMonacoLang(entry.language || 'python'));
+                    }
+                    if (entry.result) {
+                        rewritePlaceholder.classList.add('hidden');
+                        rewriteOutputContainer.classList.remove('hidden');
+                        setEditorValue(rewriteOutputEditor, 'rewriteOutputContainer', entry.result);
+                        copyRewritten.classList.remove('hidden');
+                        if (entry.improvements && entry.improvements.length > 0) {
+                            improvementsSection.classList.remove('hidden');
+                            improvementsList.innerHTML = entry.improvements.map(imp => {
+                                const safe = imp.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                return '<div class="improvement-item"><i class="fa-solid fa-check" style="color:var(--success); margin-top:3px; font-size:11px; flex-shrink:0;"></i> ' + safe + '</div>';
+                            }).join('');
+                        }
+                    }
+                }, 100);
+            }
+        }
+
+        // Toggle dropdown
+        codeHistoryBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            codeHistoryDropdown.classList.toggle('open');
+        });
+        document.addEventListener('click', (ev) => {
+            if (!codeHistoryDropdown.contains(ev.target) && ev.target !== codeHistoryBtn) {
+                codeHistoryDropdown.classList.remove('open');
+            }
+        });
+        clearCodeHistoryBtn.addEventListener('click', () => {
+            if (confirm('Clear all code history?')) setCodeHistory([]);
+        });
+
+        // Initial render
+        renderCodeHistory();
+
+        /* ═══════════════════════════════════════
+           CHAT HISTORY (localStorage)
+        ═══════════════════════════════════════ */
+        const CHAT_HISTORY_KEY = 'ai-code-review-chat-history';
+        const chatHistoryListEl = document.getElementById('chatHistoryList');
+        const newChatBtn = document.getElementById('newChatBtn');
+        let currentChatId = null;
+
+        function getChatSessions() {
+            try { return JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]'); } catch { return []; }
+        }
+        function setChatSessions(arr) {
+            localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(arr));
+            renderChatHistory();
+        }
+
+        function saveChatSession() {
+            if (chatHistory.length === 0) return;
+            const sessions = getChatSessions();
+            const title = chatHistory[0] ? chatHistory[0].content.substring(0, 50) : 'New Chat';
+            if (currentChatId) {
+                const idx = sessions.findIndex(s => s.id === currentChatId);
+                if (idx !== -1) {
+                    sessions[idx].messages = [...chatHistory];
+                    sessions[idx].title = title;
+                    sessions[idx].updatedAt = Date.now();
+                    setChatSessions(sessions);
+                    return;
+                }
+            }
+            const session = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                title: title,
+                messages: [...chatHistory],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+            currentChatId = session.id;
+            sessions.unshift(session);
+            if (sessions.length > 30) sessions.length = 30;
+            setChatSessions(sessions);
+        }
+
+        function deleteChatSession(id) {
+            if (currentChatId === id) {
+                currentChatId = null;
+                chatHistory = [];
+                resetChatUI();
+            }
+            setChatSessions(getChatSessions().filter(s => s.id !== id));
+        }
+
+        function loadChatSession(id) {
+            const sessions = getChatSessions();
+            const session = sessions.find(s => s.id === id);
+            if (!session) return;
+
+            currentChatId = id;
+            chatHistory = [...session.messages];
+
+            // Rebuild the chat UI
+            chatMessages.innerHTML = '';
+            for (const msg of chatHistory) {
+                const role = msg.role === 'user' ? 'user' : 'ai';
+                appendChatBubble(role, msg.content);
+            }
+            renderChatHistory();
+        }
+
+        function resetChatUI() {
+            chatMessages.innerHTML = `
+                <div class="chat-welcome">
+                    <div style="width:56px; height:56px; border-radius:16px; background:linear-gradient(135deg, var(--accent), var(--accent-hover)); display:inline-flex; align-items:center; justify-content:center; font-size:22px; color:white; margin-bottom:14px; box-shadow:0 4px 16px var(--accent-glow);">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h3 style="font-size:16px; font-weight:700; margin-bottom:6px;">Ask me anything about your code</h3>
+                    <p style="font-size:12.5px; color:var(--text-secondary); max-width:400px; margin:0 auto; line-height:1.5;">
+                        Paste code in the Review tab first, then ask questions here.
+                    </p>
+                    <div class="chat-suggestions">
+                        <button class="chat-suggestion-chip" data-question="Explain what this code does step by step">
+                            <i class="fa-solid fa-book-open"></i> Explain this code
+                        </button>
+                        <button class="chat-suggestion-chip" data-question="What are the potential bugs in this code?">
+                            <i class="fa-solid fa-bug"></i> Find bugs
+                        </button>
+                        <button class="chat-suggestion-chip" data-question="How can I optimize this code for better performance?">
+                            <i class="fa-solid fa-bolt"></i> Optimize
+                        </button>
+                        <button class="chat-suggestion-chip" data-question="What are the best practices I should follow for this code?">
+                            <i class="fa-solid fa-star"></i> Best practices
+                        </button>
+                    </div>
+                </div>`;
+            // Re-bind suggestion chips
+            chatMessages.querySelectorAll('.chat-suggestion-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    chatInput.value = chip.dataset.question;
+                    chatInput.dispatchEvent(new Event('input'));
+                    sendChatMessage();
+                });
+            });
+        }
+
+        function renderChatHistory() {
+            const sessions = getChatSessions();
+            if (sessions.length === 0) {
+                chatHistoryListEl.innerHTML = '<div class="chat-history-empty"><i class="fa-solid fa-comments"></i><p>No conversations yet.<br>Start a chat to see it here.</p></div>';
+                return;
+            }
+            chatHistoryListEl.innerHTML = sessions.map(s => {
+                const isActive = s.id === currentChatId;
+                const msgCount = s.messages ? Math.floor(s.messages.length / 2) : 0;
+                return `<div class="chat-history-item ${isActive ? 'active' : ''}" data-id="${s.id}">
+                    <div class="chat-hist-icon"><i class="fa-solid fa-message"></i></div>
+                    <div class="chat-hist-info">
+                        <div class="chat-hist-title">${s.title || 'New Chat'}</div>
+                        <div class="chat-hist-time">${msgCount} message${msgCount !== 1 ? 's' : ''} · ${formatTimeAgo(s.updatedAt || s.createdAt)}</div>
+                    </div>
+                    <button class="chat-hist-delete" data-id="${s.id}" title="Delete"><i class="fa-solid fa-xmark"></i></button>
+                </div>`;
+            }).join('');
+
+            chatHistoryListEl.querySelectorAll('.chat-history-item').forEach(item => {
+                item.addEventListener('click', (ev) => {
+                    if (ev.target.closest('.chat-hist-delete')) return;
+                    loadChatSession(item.dataset.id);
+                });
+            });
+            chatHistoryListEl.querySelectorAll('.chat-hist-delete').forEach(btn => {
+                btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    deleteChatSession(btn.dataset.id);
+                });
+            });
+        }
+
+        // New Chat button
+        newChatBtn.addEventListener('click', () => {
+            currentChatId = null;
+            chatHistory = [];
+            resetChatUI();
+            renderChatHistory();
+        });
+
+        // Initial render
+        renderChatHistory();
 
         /* ═══════════════════════════════════════
            HEALTH CHECK
