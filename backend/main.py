@@ -412,7 +412,7 @@ def _call_llm(system: str, user: str, json_mode: bool = False, temperature: Opti
 
     temp = temperature if temperature is not None else TEMPERATURE
 
-    max_retries = 5
+    max_retries = 3
     for attempt in range(max_retries):
         try:
             config = types.GenerateContentConfig(
@@ -444,13 +444,13 @@ def _call_llm(system: str, user: str, json_mode: bool = False, temperature: Opti
             error_msg = str(exc).lower()
             if "rate" in error_msg or "quota" in error_msg or "429" in error_msg:
                 if attempt < max_retries - 1:
-                    wait = (attempt + 1) * 10  # 10s, 20s, 30s, 40s
+                    wait = (attempt + 1) * 3  # 3s, 6s — fast fail instead of long waits
                     print(f"[Gemini] Rate limited (attempt {attempt+1}/{max_retries}). Retrying in {wait}s...")
                     time.sleep(wait)
                     continue
                 raise HTTPException(
                     status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="Gemini rate limit exceeded. Free tier allows only 10 requests/minute. Please wait ~60 seconds and try again.",
+                    detail="Rate limit reached. The free Gemini tier allows ~10 requests/minute. Please wait 30-60 seconds and try again.",
                 )
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=f"Gemini API error: {str(exc)}")
 

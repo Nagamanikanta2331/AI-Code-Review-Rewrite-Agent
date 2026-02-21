@@ -1861,6 +1861,21 @@
         function showLoading(msg) { loadingText.textContent = msg; overlay.classList.add("active"); }
         function hideLoading() { overlay.classList.remove("active"); }
 
+        // Helper: fetch with timeout (default 30s) so UI never hangs forever
+        function fetchWithTimeout(url, options, timeoutMs = 30000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            return fetch(url, { ...options, signal: controller.signal })
+                .then(res => { clearTimeout(timer); return res; })
+                .catch(err => {
+                    clearTimeout(timer);
+                    if (err.name === 'AbortError') {
+                        throw new Error('Request timed out. The API may be rate-limited — please wait 30-60 seconds and try again.');
+                    }
+                    throw err;
+                });
+        }
+
         /* ═══════════════════════════════════════
            CLIPBOARD HELPER
         ═══════════════════════════════════════ */
@@ -2450,11 +2465,11 @@
             showLoading("Reviewing code with Gemini 2.5 Flash…");
 
             try {
-                const res = await fetch(API + "/review", {
+                const res = await fetchWithTimeout(API + "/review", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ code: code, language: langSelect.value, instructions: extra }),
-                });
+                }, 30000);
                 if (!res.ok) {
                     const e = await res.json().catch(() => ({}));
                     throw new Error(e.detail || "HTTP " + res.status);
@@ -2554,11 +2569,11 @@
             showLoading("Rewriting code to production quality…");
 
             try {
-                const res = await fetch(API + "/api/rewrite", {
+                const res = await fetchWithTimeout(API + "/api/rewrite", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ code: code, language: rewriteLangSelect.value }),
-                });
+                }, 30000);
                 if (!res.ok) {
                     const e = await res.json().catch(() => ({}));
                     throw new Error(e.detail || "HTTP " + res.status);
@@ -2642,11 +2657,11 @@
             showLoading("Converting " + fromLang + " to " + toLang + "…");
 
             try {
-                const res = await fetch(API + "/api/convert", {
+                const res = await fetchWithTimeout(API + "/api/convert", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ code: code, from_language: fromLang, to_language: toLang }),
-                });
+                }, 60000);
                 if (!res.ok) {
                     const e = await res.json().catch(() => ({}));
                     throw new Error(e.detail || "HTTP " + res.status);
@@ -2809,7 +2824,7 @@
             showTypingIndicator();
 
             try {
-                const res = await fetch(API + "/api/chat", {
+                const res = await fetchWithTimeout(API + "/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -2818,7 +2833,7 @@
                         language: language,
                         history: chatHistory.slice(-10),
                     }),
-                });
+                }, 30000);
 
                 if (!res.ok) {
                     const e = await res.json().catch(() => ({}));
